@@ -23,7 +23,7 @@ type Board struct {
 func NewBoard() *Board {
 	cells := [boardSize]int{}
 	for i := 0; i < boardSize; i++ {
-		cells[i] = resolveInitialBoardCellValue(i)
+		cells[i] = initializeBoardCellValues(i)
 	}
 	return &Board{
 		cells: cells,
@@ -87,7 +87,7 @@ func (b *Board) GridString() string {
 	return sb.String()
 }
 
-func resolveInitialBoardCellValue(i int) int {
+func initializeBoardCellValues(i int) int {
 	if (i >= 0 && i <= 19) ||
 		(i%10 == 0) ||
 		(i%10 == 9) ||
@@ -126,16 +126,3 @@ func resolveInitialBoardCellValue(i int) int {
 	}
 	return int(powerPiece) * int(Black)
 }
-
-type Direction int
-
-const (
-	N  Direction = 10
-	S  Direction = -10
-	E  Direction = 1
-	W  Direction = -1
-	NE Direction = N + E // 11
-	NW Direction = N + W // 9
-	SE Direction = S + E // -9
-	SW Direction = S + W // -11
-)
