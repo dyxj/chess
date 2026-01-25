@@ -1,7 +1,5 @@
 package engine
 
-import "fmt"
-
 // Board dimensions
 const boardWidth = 10  // column
 const boardHeight = 12 // row
@@ -26,7 +24,7 @@ const (
 )
 
 type Board struct {
-	cell [width * height]int
+	cell [boardWidth * boardHeight]int
 }
 
 func NewBoard() *Board {
