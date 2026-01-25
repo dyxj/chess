@@ -30,41 +30,30 @@ func TestNewBoard(t *testing.T) {
 }
 
 func TestBoard_IsEmpty(t *testing.T) {
-	board := &Board{
-		cells: [120]int{
-			0,
-			7,
-			rand.IntN(5) + 1,
-			0,
-			(rand.IntN(5) + 1) * -1,
-			7,
-		},
-	}
+	board := genTestBoard()
 
 	assert.True(t, board.IsEmpty(0))
 	assert.False(t, board.IsEmpty(1))
 	assert.False(t, board.IsEmpty(2))
-	assert.True(t, board.IsEmpty(3))
-	assert.False(t, board.IsEmpty(4))
-	assert.False(t, board.IsEmpty(5))
+	assert.False(t, board.IsEmpty(3))
 }
 
 func TestBoard_IsSentinel(t *testing.T) {
-	board := &Board{
-		cells: [120]int{
-			0,
-			7,
-			(rand.IntN(5) + 1) * -1,
-			0,
-			rand.IntN(5) + 1,
-			7,
-		},
-	}
+	board := genTestBoard()
 
 	assert.False(t, board.IsSentinel(0))
 	assert.True(t, board.IsSentinel(1))
 	assert.False(t, board.IsSentinel(2))
 	assert.False(t, board.IsSentinel(3))
-	assert.False(t, board.IsSentinel(4))
-	assert.True(t, board.IsSentinel(5))
+}
+
+func genTestBoard() *Board {
+	return &Board{
+		cells: [120]int{
+			0,
+			7,
+			rand.IntN(5) + 1,
+			(rand.IntN(5) + 1) * -1,
+		},
+	}
 }
