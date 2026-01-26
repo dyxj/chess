@@ -93,7 +93,7 @@ func TestKingBasicMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves := GenerateBasicMoves(board, tPiece)
+			moves := GenerateMoves(board, tPiece)
 			assert.Equal(t, tc.expect(), moves)
 		})
 	}
@@ -146,7 +146,7 @@ func TestKingEndOfBoard(t *testing.T) {
 				append([]*Piece{}, tPiece),
 			)
 			assert.NoError(t, err)
-			moves := GenerateBasicMoves(board, tPiece)
+			moves := GenerateMoves(board, tPiece)
 			assert.Equal(t, tc.expectedNumberOfMoves, len(moves))
 		})
 	}

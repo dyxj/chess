@@ -15,7 +15,14 @@ type Move struct {
 	IsEnPassant bool
 }
 
-func GenerateBasicMoves(
+func GenerateMoves(
+	board *Board,
+	piece *Piece,
+) []Move {
+	return generateBasicMoves(board, piece)
+}
+
+func generateBasicMoves(
 	board *Board,
 	piece *Piece,
 ) []Move {

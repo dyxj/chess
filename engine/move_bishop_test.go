@@ -86,7 +86,7 @@ func TestBishopBasicMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves := GenerateBasicMoves(board, tPiece)
+			moves := GenerateMoves(board, tPiece)
 			assert.Equal(t, tc.expect(), moves)
 		})
 	}
