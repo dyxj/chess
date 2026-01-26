@@ -54,8 +54,7 @@ func TestKingBasicMoves(t *testing.T) {
 			},
 			expect: func() []Move {
 				// King cannot move to any square, all blocked
-				var moves []Move
-				return moves
+				return []Move{}
 			},
 		},
 		{
@@ -93,7 +92,8 @@ func TestKingBasicMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves := GenerateMoves(board, tPiece)
+			moves, err := GeneratePseudoLegalMoves(board, tPiece)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expect(), moves)
 		})
 	}
@@ -146,7 +146,8 @@ func TestKingEndOfBoard(t *testing.T) {
 				append([]*Piece{}, tPiece),
 			)
 			assert.NoError(t, err)
-			moves := GenerateMoves(board, tPiece)
+			moves, err := GeneratePseudoLegalMoves(board, tPiece)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedNumberOfMoves, len(moves))
 		})
 	}

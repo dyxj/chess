@@ -82,6 +82,15 @@ var pieceBasicDirections = map[Symbol][]Direction{
 	King:   {N, S, E, W, NE, NW, SE, SW},
 }
 
+var maxMovesByPiece = map[Symbol]int{
+	Queen:  56,
+	Rook:   28,
+	Bishop: 28,
+	Knight: 8,
+	King:   8,
+	Pawn:   4,
+}
+
 func GenerateStartPieces(color Color) []*Piece {
 	pp := make([]*Piece, 0, 16)
 

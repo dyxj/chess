@@ -1,13 +1,9 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
-
-var ErrOutOfBoard = errors.New("position out of board")
-var ErrOccupied = errors.New("position is occupied")
 
 // Board dimensions
 const boardWidth = 10  // column
