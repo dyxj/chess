@@ -20,8 +20,8 @@ const (
 	Black Color = -1
 )
 
-func (c Color) Opposite(i Color) Color {
-	return i * -1
+func (c Color) Opposite() Color {
+	return c * -1
 }
 
 type Symbol int
