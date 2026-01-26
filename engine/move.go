@@ -39,6 +39,7 @@ func generatePseudoLegalMoves(
 		currentPos := piece.position
 		for {
 			nextPos := currentPos + int(direction)
+
 			if board.IsSentinel(nextPos) || board.Color(nextPos) == piece.color {
 				break
 			}
@@ -49,7 +50,7 @@ func generatePseudoLegalMoves(
 					Symbol:   piece.symbol,
 					From:     piece.position,
 					To:       nextPos,
-					Captured: board.Symbol(nextPos), // will be 0 if empty or sentinel
+					Captured: board.Symbol(nextPos), // 0 if sentinel or empty
 				})
 
 			if !board.IsEmpty(nextPos) || !isSlidingPiece[piece.symbol] {
