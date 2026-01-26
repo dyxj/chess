@@ -55,6 +55,15 @@ func NewPiece(
 	}
 }
 
+var isSlidingPiece = map[Symbol]bool{
+	Pawn:   false,
+	Knight: false,
+	Bishop: true,
+	Rook:   true,
+	Queen:  true,
+	King:   false,
+}
+
 var pieceBasicDirections = map[Symbol][]Direction{
 	Pawn: {N, NE, NW}, // pawn needs spe
 	Knight: {

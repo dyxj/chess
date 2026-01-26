@@ -47,6 +47,9 @@ func GenerateBasicMoves(
 				move.Captured = board.Symbol(nextPos)
 				hasNext = false
 			}
+			if !isSlidingPiece[piece.symbol] {
+				hasNext = false
+			}
 
 			moves = append(moves, move)
 			board.applyMove(move)
