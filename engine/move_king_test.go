@@ -98,3 +98,56 @@ func TestKingBasicMoves(t *testing.T) {
 		})
 	}
 }
+
+func TestKingEndOfBoard(t *testing.T) {
+	color := faker.Color()
+	tt := []struct {
+		name                  string
+		kingPosition          int
+		expectedNumberOfMoves int
+	}{
+		{
+			"top left corner",
+			91,
+			3,
+		},
+		{
+			"top right corner",
+			98,
+			3,
+		},
+		{
+			"top center",
+			95,
+			5,
+		},
+		{
+			"bottom left corner",
+			21,
+			3,
+		},
+		{
+			"bottom right corner",
+			28,
+			3,
+		},
+		{
+			"bottom center",
+			25,
+			5,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			board := NewEmptyBoard()
+			tPiece := NewPiece(King, color, tc.kingPosition)
+			err := board.LoadPieces(
+				append([]*Piece{}, tPiece),
+			)
+			assert.NoError(t, err)
+			moves := GenerateBasicMoves(board, tPiece)
+			assert.Equal(t, tc.expectedNumberOfMoves, len(moves))
+		})
+	}
+}
