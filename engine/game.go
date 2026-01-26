@@ -1,12 +1,15 @@
 package engine
 
 type Game struct {
-	board          *Board
-	whitePieces    []*Piece
-	blackPieces    []*Piece
-	moveHistory    []Move
-	whiteGraveyard []Symbol
-	blackGraveyard []Symbol
+	board           *Board
+	turn            Color
+	whiteValidMoves []Move
+	blackValidMoves []Move
+	whitePieces     []*Piece
+	blackPieces     []*Piece
+	moveHistory     []Move
+	whiteGraveyard  []Symbol
+	blackGraveyard  []Symbol
 	// zeroes if a pawn moves or a capture occurs
 	drawCounter int
 }
@@ -18,6 +21,7 @@ func NewGame() *Game {
 
 	return &Game{
 		board:          board,
+		turn:           White,
 		whitePieces:    whitePieces,
 		blackPieces:    blackPieces,
 		moveHistory:    make([]Move, 0, 256),

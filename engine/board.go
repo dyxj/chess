@@ -20,6 +20,33 @@ type Board struct {
 	cells [boardSize]int
 }
 
+/*
+NewBoard creates a new chess board with the initial setup.
+[  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7]
+(110) (111) (112) (113) (114) (115) (116) (117) (118) (119)
+[  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7]
+(100) (101) (102) (103) (104) (105) (106) (107) (108) (109)
+[  7] [ -4] [ -2] [ -3] [ -5] [ -6] [ -3] [ -2] [ -4] [  7]
+( 90) ( 91) ( 92) ( 93) ( 94) ( 95) ( 96) ( 97) ( 98) ( 99)
+[  7] [ -1] [ -1] [ -1] [ -1] [ -1] [ -1] [ -1] [ -1] [  7]
+( 80) ( 81) ( 82) ( 83) ( 84) ( 85) ( 86) ( 87) ( 88) ( 89)
+[  7] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  7]
+( 70) ( 71) ( 72) ( 73) ( 74) ( 75) ( 76) ( 77) ( 78) ( 79)
+[  7] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  7]
+( 60) ( 61) ( 62) ( 63) ( 64) ( 65) ( 66) ( 67) ( 68) ( 69)
+[  7] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  7]
+( 50) ( 51) ( 52) ( 53) ( 54) ( 55) ( 56) ( 57) ( 58) ( 59)
+[  7] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  0] [  7]
+( 40) ( 41) ( 42) ( 43) ( 44) ( 45) ( 46) ( 47) ( 48) ( 49)
+[  7] [  1] [  1] [  1] [  1] [  1] [  1] [  1] [  1] [  7]
+( 30) ( 31) ( 32) ( 33) ( 34) ( 35) ( 36) ( 37) ( 38) ( 39)
+[  7] [  4] [  2] [  3] [  5] [  6] [  3] [  2] [  4] [  7]
+( 20) ( 21) ( 22) ( 23) ( 24) ( 25) ( 26) ( 27) ( 28) ( 29)
+[  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7]
+( 10) ( 11) ( 12) ( 13) ( 14) ( 15) ( 16) ( 17) ( 18) ( 19)
+[  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7] [  7]
+(  0) (  1) (  2) (  3) (  4) (  5) (  6) (  7) (  8) (  9)
+*/
 func NewBoard() *Board {
 	cells := [boardSize]int{}
 	for i := 0; i < boardSize; i++ {
@@ -80,11 +107,38 @@ func (b *Board) GridString() string {
 	for x := boardHeight - 1; x >= 0; x-- {
 		for y := 0; y < boardWidth; y++ {
 			i := x*boardWidth + y
-			sb.WriteString(fmt.Sprintf("(%2d) ", b.Value(i)))
+			sb.WriteString(fmt.Sprintf("[%2d] ", b.Value(i)))
 		}
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+func (b *Board) applyMove(m Move) {
+	b.cells[m.From] = EmptyCell
+	b.cells[m.To] = boardSymbolMove(&m)
+}
+
+func (b *Board) undoMove(move Move) {
+	b.cells[move.From] = boardSymbolMove(&move)
+	if move.Captured != 0 {
+		b.cells[move.To] = int(move.Captured) * int(-move.Color)
+	}
+	b.cells[move.To] = EmptyCell
+}
+
+func (b *Board) undoMoves(moves []Move) {
+	for _, move := range moves {
+		b.cells[move.From] = boardSymbolMove(&move)
+	}
+}
+
+func boardSymbolPiece(p *Piece) int {
+	return int(p.symbol) * int(p.color)
+}
+
+func boardSymbolMove(m *Move) int {
+	return int(m.Symbol) * int(m.Color)
 }
 
 func initializeBoardCellValues(i int) int {

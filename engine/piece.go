@@ -20,6 +20,10 @@ const (
 	Black Color = -1
 )
 
+func (c Color) Opposite(i Color) Color {
+	return i * -1
+}
+
 type Symbol int
 
 const (
@@ -35,26 +39,7 @@ type Piece struct {
 	symbol   Symbol
 	color    Color
 	position int
-}
-
-func (p *Piece) Symbol() Symbol {
-	return p.symbol
-}
-
-func (p *Piece) Color() Color {
-	return p.color
-}
-
-func (p *Piece) BoardSymbol() int {
-	return int(p.symbol) * int(p.color)
-}
-
-func (p *Piece) SetPosition(pos int) {
-	p.position = pos
-}
-
-func (p *Piece) Position() int {
-	return p.position
+	hasMoved bool
 }
 
 func NewPiece(
@@ -66,5 +51,24 @@ func NewPiece(
 		symbol:   symbol,
 		color:    color,
 		position: position,
+		hasMoved: false,
 	}
+}
+
+var pieceBasicDirections = map[Symbol][]Direction{
+	Pawn: {N, NE, NW}, // pawn needs spe
+	Knight: {
+		N + N + E,
+		N + N + W,
+		S + S + E,
+		S + S + W,
+		E + E + N,
+		E + E + S,
+		W + W + N,
+		W + W + S,
+	},
+	Bishop: {NE, NW, SE, SW},
+	Rook:   {N, S, E, W},
+	Queen:  {N, S, E, W, NE, NW, SE, SW},
+	King:   {N, S, E, W, NE, NW, SE, SW},
 }
