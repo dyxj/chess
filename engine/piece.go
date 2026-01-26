@@ -72,3 +72,34 @@ var pieceBasicDirections = map[Symbol][]Direction{
 	Queen:  {N, S, E, W, NE, NW, SE, SW},
 	King:   {N, S, E, W, NE, NW, SE, SW},
 }
+
+func GenerateStartPieces(color Color) []*Piece {
+	pp := make([]*Piece, 0, 16)
+
+	pawnStart := 31
+	pawnEnd := 38
+	if color == Black {
+		pawnStart = 81
+		pawnEnd = 88
+	}
+
+	for i := pawnStart; i <= pawnEnd; i++ {
+		pp = append(pp, NewPiece(Pawn, color, i))
+	}
+
+	powerPieceBase := 20
+	if color == Black {
+		powerPieceBase = 90
+	}
+
+	pp = append(pp, NewPiece(Rook, color, powerPieceBase+1))
+	pp = append(pp, NewPiece(Rook, color, powerPieceBase+8))
+	pp = append(pp, NewPiece(Knight, color, powerPieceBase+2))
+	pp = append(pp, NewPiece(Knight, color, powerPieceBase+7))
+	pp = append(pp, NewPiece(Bishop, color, powerPieceBase+3))
+	pp = append(pp, NewPiece(Bishop, color, powerPieceBase+6))
+	pp = append(pp, NewPiece(Queen, color, powerPieceBase+4))
+	pp = append(pp, NewPiece(King, color, powerPieceBase+5))
+
+	return pp
+}
