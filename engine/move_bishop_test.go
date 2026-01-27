@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBishopBasicMoves(t *testing.T) {
+func TestBishopPseudoLegalMoves(t *testing.T) {
 	color := faker.Color()
 	xColor := color.Opposite()
 

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestQueenBasicMoves(t *testing.T) {
+func TestQueenPseudoLegalMoves(t *testing.T) {
 	color := faker.Color()
 	xColor := color.Opposite()
 
