@@ -65,7 +65,7 @@ var isSlidingPiece = map[Symbol]bool{
 }
 
 var pieceBasicDirections = map[Symbol][]Direction{
-	Pawn: {N, NE, NW}, // pawn needs spe
+	Pawn: {},
 	Knight: {
 		N + N + E,
 		N + N + W,

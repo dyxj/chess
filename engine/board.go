@@ -16,13 +16,8 @@ const (
 	SentinelCell = 7
 )
 
-type Board struct {
-	cells [boardSize]int
-}
-
 /*
-NewBoard creates a new chess board with the initial pieces.
-
+Board
 |110. 7|111. 7|112. 7|113. 7|114. 7|115. 7|116. 7|117. 7|118. 7|119. 7|
 |100. 7|101. 7|102. 7|103. 7|104. 7|105. 7|106. 7|107. 7|108. 7|109. 7|
 | 90. 7| 91.-4| 92.-2| 93.-3| 94.-5| 95.-6| 96.-3| 97.-2| 98.-4| 99. 7|
@@ -36,14 +31,18 @@ NewBoard creates a new chess board with the initial pieces.
 | 10. 7| 11. 7| 12. 7| 13. 7| 14. 7| 15. 7| 16. 7| 17. 7| 18. 7| 19. 7|
 |  0. 7|  1. 7|  2. 7|  3. 7|  4. 7|  5. 7|  6. 7|  7. 7|  8. 7|  9. 7|
 */
+type Board struct {
+	cells        [boardSize]int
+	whitePieces  []*Piece
+	blackPieces  []*Piece
+	whiteKingPos int
+	blackKingPos int
+	moveHistory  []Move
+}
+
+// NewBoard creates a new chess board with the initial pieces.
 func NewBoard() *Board {
-	cells := [boardSize]int{}
-	for i := 0; i < boardSize; i++ {
-		cells[i] = calculateEmptyBoardValues(i)
-	}
-	b := &Board{
-		cells: cells,
-	}
+	b := NewEmptyBoard()
 
 	wp := GenerateStartPieces(White)
 	err := b.LoadPieces(wp)
@@ -63,10 +62,13 @@ func NewBoard() *Board {
 func NewEmptyBoard() *Board {
 	cells := [boardSize]int{}
 	for i := 0; i < boardSize; i++ {
-		cells[i] = calculateEmptyBoardValues(i)
+		cells[i] = calculateBlankBoardValue(i)
 	}
 	b := &Board{
-		cells: cells,
+		cells:       cells,
+		whitePieces: make([]*Piece, 0, 16),
+		blackPieces: make([]*Piece, 0, 16),
+		moveHistory: make([]Move, 0, 256),
 	}
 	return b
 }
@@ -89,6 +91,11 @@ func (b *Board) setPiece(p *Piece) error {
 		return ErrOccupied
 	}
 	b.cells[p.position] = boardSymbolPiece(p)
+	if p.color == White {
+		b.whitePieces = append(b.whitePieces, p)
+	} else {
+		b.blackPieces = append(b.blackPieces, p)
+	}
 	return nil
 }
 
@@ -170,6 +177,13 @@ func (b *Board) undoMoves(moves []Move) {
 	}
 }
 
+func (b *Board) lastMove() (move Move, found bool) {
+	if len(b.moveHistory) == 0 {
+		return Move{}, false
+	}
+	return b.moveHistory[len(b.moveHistory)-1], true
+}
+
 func boardSymbolPiece(p *Piece) int {
 	return int(p.symbol) * int(p.color)
 }
@@ -178,11 +192,11 @@ func boardSymbolMove(m *Move) int {
 	return int(m.Symbol) * int(m.Color)
 }
 
-func calculateEmptyBoardValues(i int) int {
-	if (i >= 0 && i <= 19) ||
-		(i%10 == 0) ||
-		(i%10 == 9) ||
-		(i >= 100 && i <= 119) {
+func calculateBlankBoardValue(position int) int {
+	if (position >= 0 && position <= 19) ||
+		(position%10 == 0) ||
+		(position%10 == 9) ||
+		(position >= 100 && position <= 119) {
 		return SentinelCell
 	}
 
