@@ -15,7 +15,7 @@ type Move struct {
 	IsEnPassant bool
 }
 
-func GeneratePseudoLegalMoves(
+func GeneratePiecePseudoLegalMoves(
 	board *Board,
 	piece *Piece,
 ) ([]Move, error) {
@@ -30,14 +30,14 @@ func GeneratePseudoLegalMoves(
 		return generatePseudoLegalPawnMoves(board, piece)
 	}
 
-	moves := generatePseudoLegalMoves(board, piece)
+	moves := generatePiecePseudoLegalMoves(board, piece)
 
 	moves = append(moves, generateCastlingMoves(board, piece)...)
 
 	return moves, nil
 }
 
-func generatePseudoLegalMoves(
+func generatePiecePseudoLegalMoves(
 	board *Board,
 	piece *Piece,
 ) []Move {

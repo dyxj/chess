@@ -168,12 +168,14 @@ func (b *Board) GridString() string {
 	return sb.String()
 }
 
-func (b *Board) applyMove(m Move) {
+// TODO castling and en passant not handled here
+func (b *Board) applyMoveRaw(m Move) {
 	b.cells[m.From] = EmptyCell
 	b.cells[m.To] = boardSymbolMove(&m)
 }
 
-func (b *Board) undoMove(move Move) {
+// TODO castling and en passant not handled here
+func (b *Board) undoMoveRaw(move Move) {
 	b.cells[move.From] = boardSymbolMove(&move)
 	if move.Captured != 0 {
 		b.cells[move.To] = int(move.Captured) * int(-move.Color)
@@ -181,9 +183,9 @@ func (b *Board) undoMove(move Move) {
 	b.cells[move.To] = EmptyCell
 }
 
-func (b *Board) undoMoves(moves []Move) {
+func (b *Board) undoMovesRaw(moves []Move) {
 	for i := len(moves) - 1; i >= 0; i-- {
-		b.undoMove(moves[i])
+		b.undoMoveRaw(moves[i])
 	}
 }
 

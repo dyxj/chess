@@ -47,7 +47,7 @@ func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
 			board := NewEmptyBoard()
 			err := board.LoadPieces(tc.pieces())
 			assert.NoError(t, err)
-			_, err = GeneratePseudoLegalMoves(board, tc.selected())
+			_, err = GeneratePiecePseudoLegalMoves(board, tc.selected())
 			assert.Equal(t, tc.expected, err)
 		})
 	}

@@ -86,7 +86,7 @@ func TestRookPseudoLegalMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves, err := GeneratePseudoLegalMoves(board, tPiece)
+			moves, err := GeneratePiecePseudoLegalMoves(board, tPiece)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expect(), moves)
 		})
