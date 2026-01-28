@@ -5,24 +5,31 @@ import "github.com/dyxj/chess/pkg/mathx"
 var pawnWhiteDirections = []Direction{N, N + N, NE, NW}
 var pawnBlackDirections = []Direction{S, S + S, SE, SW}
 
-func generatePseudoLegalPawnMoves(board *Board, piece *Piece) ([]Move, error) {
-	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
-	var pawnDirections []Direction
-	if piece.color == White {
-		pawnDirections = pawnWhiteDirections
-	} else {
-		pawnDirections = pawnBlackDirections
-	}
-
+func pawnMoveDirections(color Color, hasMoved bool) []Direction {
 	moveEndIndex := 2
-	if piece.hasMoved {
-		// skip double lastMove
+	if hasMoved {
 		moveEndIndex = 1
 	}
+	if color == White {
+		return pawnWhiteDirections[:moveEndIndex]
+	}
+	return pawnBlackDirections[:moveEndIndex]
+}
 
-	// Pawn lastMove
-	for moveIndex := 0; moveIndex < moveEndIndex; moveIndex++ {
-		direction := pawnDirections[moveIndex]
+func pawnCaptureDirections(color Color) []Direction {
+	if color == White {
+		return pawnWhiteDirections[2:]
+	}
+	return pawnBlackDirections[2:]
+}
+
+func generatePseudoLegalPawnMoves(board *Board, piece *Piece) ([]Move, error) {
+	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
+
+	// Pawn move
+	moveDirections := pawnMoveDirections(piece.color, piece.hasMoved)
+	for i := 0; i < len(moveDirections); i++ {
+		direction := moveDirections[i]
 		nextPos := piece.position + int(direction)
 
 		// sentinel should never happen due to promotion
@@ -50,8 +57,9 @@ func generatePseudoLegalPawnMoves(board *Board, piece *Piece) ([]Move, error) {
 	}
 
 	// Pawn capture
-	for captureIndex := 2; captureIndex < 4; captureIndex++ {
-		direction := pawnDirections[captureIndex]
+	captureDirections := pawnCaptureDirections(piece.color)
+	for i := 0; i < len(captureDirections); i++ {
+		direction := captureDirections[i]
 		nextPos := piece.position + int(direction)
 
 		// sentinel should never happen due to promotion

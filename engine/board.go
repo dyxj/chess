@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -61,8 +62,8 @@ func NewBoard() *Board {
 
 func NewEmptyBoard() *Board {
 	cells := [boardSize]int{}
-	for i := 0; i < boardSize; i++ {
-		cells[i] = calculateBlankBoardValue(i)
+	for pos := 0; pos < boardSize; pos++ {
+		cells[pos] = calculateBlankBoardValue(pos)
 	}
 	b := &Board{
 		cells:       cells,
@@ -109,15 +110,30 @@ func (b *Board) Pieces(color Color) []*Piece {
 	return b.blackPieces
 }
 
-func (b *Board) IsEmpty(i int) bool {
-	return b.cells[i] == EmptyCell
-}
-func (b *Board) IsSentinel(i int) bool {
-	return b.cells[i] == SentinelCell
+func (b *Board) kingPosition(color Color) int {
+	if color == White {
+		return b.whiteKingPos
+	}
+	return b.blackKingPos
 }
 
-func (b *Board) Color(i int) Color {
-	cv := b.cells[i]
+func (b *Board) setKingPosition(color Color, pos int) {
+	if color == White {
+		b.whiteKingPos = pos
+	} else {
+		b.blackKingPos = pos
+	}
+}
+
+func (b *Board) IsEmpty(pos int) bool {
+	return b.cells[pos] == EmptyCell
+}
+func (b *Board) IsSentinel(pos int) bool {
+	return b.cells[pos] == SentinelCell
+}
+
+func (b *Board) Color(pos int) Color {
+	cv := b.cells[pos]
 	if cv == 0 || cv == 7 {
 		// risky silent failure
 		// options
@@ -133,8 +149,8 @@ func (b *Board) Color(i int) Color {
 	return Black
 }
 
-func (b *Board) Symbol(i int) Symbol {
-	cv := b.cells[i]
+func (b *Board) Symbol(pos int) Symbol {
+	cv := b.cells[pos]
 	if cv == 0 || cv == 7 {
 		// risky silent failure
 		// options
@@ -150,8 +166,74 @@ func (b *Board) Symbol(i int) Symbol {
 	return Symbol(-cv)
 }
 
-func (b *Board) Value(i int) int {
-	return b.cells[i]
+func (b *Board) isKingUnderAttack(color Color) bool {
+	return b.isUnderAttack(b.kingPosition(color), color)
+}
+
+// isUnderAttack check if position is under attack by opponent pieces
+// using a backward approach.
+func (b *Board) isUnderAttack(pos int, defender Color) bool {
+	attacker := defender.Opposite()
+
+	// Attacked by sliders Queen, Rook, Bishop
+	for i, direction := range directionCircle {
+		if b.isUnderAttackBySlider(pos, direction, attacker, slidingMoversByDirectionCircleIndex[i]) {
+			return true
+		}
+	}
+
+	// Attacked by horse
+	for _, direction := range pieceDirections[Knight] {
+		if b.isUnderAttackByFixDirection(pos, direction, attacker, Knight) {
+			return true
+		}
+	}
+
+	// Attacked by King
+	for _, direction := range pieceDirections[King] {
+		if b.isUnderAttackByFixDirection(pos, direction, attacker, King) {
+			return true
+		}
+	}
+
+	// Attacked by Pawn
+	for _, direction := range pawnCaptureDirections(attacker) {
+		if b.isUnderAttackByFixDirection(pos, direction, attacker, Pawn) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *Board) isUnderAttackBySlider(pos int, direction Direction, attacker Color, symbols []Symbol) bool {
+	dInt := int(direction)
+	attackerPos := pos + dInt
+	for {
+		// sentinel(0), empty(0) or defenders color
+		if b.Color(attackerPos) != attacker {
+			break
+		}
+
+		if slices.Contains(symbols, b.Symbol(attackerPos)) {
+			return true
+		}
+
+		attackerPos += dInt
+	}
+	return false
+}
+
+func (b *Board) isUnderAttackByFixDirection(pos int, direction Direction, attacker Color, symbol Symbol) bool {
+	attackerPos := pos + int(direction)
+	if b.Symbol(attackerPos) == symbol && b.Color(attackerPos) == attacker {
+		return true
+	}
+	return false
+}
+
+func (b *Board) Value(pos int) int {
+	return b.cells[pos]
 }
 
 func (b *Board) GridString() string {
@@ -169,23 +251,31 @@ func (b *Board) GridString() string {
 }
 
 // TODO castling and en passant not handled here
-func (b *Board) applyMoveRaw(m Move) {
+func (b *Board) applyMovePos(m Move) {
 	b.cells[m.From] = EmptyCell
 	b.cells[m.To] = boardSymbolMove(&m)
+
+	if m.Symbol == King {
+		b.setKingPosition(m.Color, m.To)
+	}
 }
 
 // TODO castling and en passant not handled here
-func (b *Board) undoMoveRaw(move Move) {
-	b.cells[move.From] = boardSymbolMove(&move)
-	if move.Captured != 0 {
-		b.cells[move.To] = int(move.Captured) * int(-move.Color)
+func (b *Board) undoMovePos(m Move) {
+	b.cells[m.From] = boardSymbolMove(&m)
+	if m.Captured != 0 {
+		b.cells[m.To] = int(m.Captured) * int(-m.Color)
 	}
-	b.cells[move.To] = EmptyCell
+	b.cells[m.To] = EmptyCell
+
+	if m.Symbol == King {
+		b.setKingPosition(m.Color, m.From)
+	}
 }
 
-func (b *Board) undoMovesRaw(moves []Move) {
+func (b *Board) undoMovesPos(moves []Move) {
 	for i := len(moves) - 1; i >= 0; i-- {
-		b.undoMoveRaw(moves[i])
+		b.undoMovePos(moves[i])
 	}
 }
 
@@ -204,11 +294,11 @@ func boardSymbolMove(m *Move) int {
 	return int(m.Symbol) * int(m.Color)
 }
 
-func calculateBlankBoardValue(position int) int {
-	if (position >= 0 && position <= 19) ||
-		(position%10 == 0) ||
-		(position%10 == 9) ||
-		(position >= 100 && position <= 119) {
+func calculateBlankBoardValue(pos int) int {
+	if (pos >= 0 && pos <= 19) ||
+		(pos%10 == 0) ||
+		(pos%10 == 9) ||
+		(pos >= 100 && pos <= 119) {
 		return SentinelCell
 	}
 

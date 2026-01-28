@@ -85,8 +85,8 @@ var isSlidingPiece = map[Symbol]bool{
 	King:   false,
 }
 
-var pieceBasicDirections = map[Symbol][]Direction{
-	Pawn: {},
+var pieceDirections = map[Symbol][]Direction{
+	Pawn: {}, // empty as it has specialized handling
 	Knight: {
 		N + N + E,
 		N + N + W,
@@ -110,6 +110,43 @@ var maxMovesByPiece = map[Symbol]int{
 	Knight: 8,
 	King:   8,
 	Pawn:   4,
+}
+
+var maxMovesAllPieces = maxMovesByPiece[Pawn] +
+	maxMovesByPiece[Knight] +
+	maxMovesByPiece[Bishop] +
+	maxMovesByPiece[Rook] +
+	maxMovesByPiece[Queen] +
+	maxMovesByPiece[King]
+
+var directionCircle = [8]Direction{
+	N,
+	NE,
+	E,
+	SE,
+	S,
+	SW,
+	W,
+	NW,
+}
+var slidingMoversByDirectionCircleIndex = [8][]Symbol{
+	{Queen, Rook},
+	{Queen, Bishop},
+	{Queen, Rook},
+	{Queen, Bishop},
+	{Queen, Rook},
+	{Queen, Bishop},
+	{Queen, Rook},
+	{Queen, Bishop},
+}
+
+func slidingMoversByDirection(direction Direction) []Symbol {
+	for i, v := range directionCircle {
+		if direction == v {
+			return slidingMoversByDirectionCircleIndex[i]
+		}
+	}
+	return nil
 }
 
 func GenerateStartPieces(color Color) []*Piece {
