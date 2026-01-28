@@ -84,6 +84,9 @@ func (b *Board) LoadPieces(pp []*Piece) error {
 }
 
 func (b *Board) setPiece(p *Piece) error {
+	if p.position > len(b.cells)-1 {
+		return ErrOutOfBoard
+	}
 	if b.IsSentinel(p.position) {
 		return ErrOutOfBoard
 	}

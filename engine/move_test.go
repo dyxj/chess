@@ -1,8 +1,57 @@
 package engine_test
 
 import (
+	"testing"
+
 	. "github.com/dyxj/chess/engine"
+	"github.com/dyxj/chess/test/faker"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
+	color := faker.Color()
+	tt := []struct {
+		name     string
+		selected func() *Piece
+		pieces   func() []*Piece
+		expected error
+	}{
+		{
+			name: "piece not found(symbol mismatch)",
+			selected: func() *Piece {
+				return NewPiece(Rook, color, 74)
+			},
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = append(pieces, NewPiece(Pawn, color, 74))
+				return pieces
+			},
+			expected: ErrPieceNotFound,
+		},
+		{
+			name: "piece not found(color mismatch)",
+			selected: func() *Piece {
+				return NewPiece(Pawn, color.Opposite(), 74)
+			},
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = append(pieces, NewPiece(Pawn, color, 74))
+				return pieces
+			},
+			expected: ErrPieceNotFound,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			board := NewEmptyBoard()
+			err := board.LoadPieces(tc.pieces())
+			assert.NoError(t, err)
+			_, err = GeneratePseudoLegalMoves(board, tc.selected())
+			assert.Equal(t, tc.expected, err)
+		})
+	}
+}
 
 // generateExpectedMoves generates moves from [from,to] in the given direction.
 // takes first capture and assigns it to last move.

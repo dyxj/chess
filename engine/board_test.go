@@ -44,7 +44,52 @@ func TestBoard_IsSentinel(t *testing.T) {
 	assert.False(t, board.IsSentinel(0))
 	assert.True(t, board.IsSentinel(1))
 	assert.False(t, board.IsSentinel(2))
-	assert.False(t, board.IsSentinel(3))
+	assert.False(t, board.IsEmpty(3))
+}
+
+func TestLoadPiecesError(t *testing.T) {
+	tt := []struct {
+		name     string
+		pieces   func() []*Piece
+		expected error
+	}{
+		{
+			name: "out of board(sentinel)",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = append(pieces, NewPiece(Pawn, White, 99))
+				return pieces
+			},
+			expected: ErrOutOfBoard,
+		},
+		{
+			name: "out of board(index out of range)",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = append(pieces, NewPiece(Pawn, White, 120))
+				return pieces
+			},
+			expected: ErrOutOfBoard,
+		},
+		{
+			name: "occupied",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = append(pieces, NewPiece(Rook, White, 74))
+				pieces = append(pieces, NewPiece(Pawn, White, 74))
+				return pieces
+			},
+			expected: ErrOccupied,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			board := NewEmptyBoard()
+			err := board.LoadPieces(tc.pieces())
+			assert.Equal(t, tc.expected, err)
+		})
+	}
 }
 
 func genTestBoard() *Board {
