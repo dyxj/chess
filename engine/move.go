@@ -30,14 +30,17 @@ func GeneratePseudoLegalMoves(
 		return generatePseudoLegalPawnMoves(board, piece)
 	}
 
-	return generatePseudoLegalMoves(board, piece)
+	moves := generatePseudoLegalMoves(board, piece)
+
+	moves = append(moves, generateCastlingMoves(board, piece)...)
+
+	return moves, nil
 }
 
-// TODO missing special moves (castling)
 func generatePseudoLegalMoves(
 	board *Board,
 	piece *Piece,
-) ([]Move, error) {
+) []Move {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
 	for _, direction := range pieceBasicDirections[piece.symbol] {
@@ -65,5 +68,58 @@ func generatePseudoLegalMoves(
 			currentPos = nextPos
 		}
 	}
-	return moves, nil
+	return moves
+}
+
+// generateCastlingMoves checks if king is King and if it hasn't moved.
+// Check if rooks haven't moved and if the path between king and rook is clear.
+// If all conditions are met, generate castling moves.
+func generateCastlingMoves(board *Board, king *Piece) []Move {
+	if king.symbol != King || king.hasMoved {
+		return nil
+	}
+	pieces := board.Pieces(king.color)
+
+	moves := make([]Move, 0, 2)
+	rooksFound := 0
+	for i := 0; i < len(pieces) && rooksFound < 2; i++ {
+		if pieces[i].symbol != Rook {
+			continue
+		}
+		rooksFound++
+		if pieces[i].hasMoved {
+			continue
+		}
+		rook := pieces[i]
+
+		direction := E
+		if king.position > rook.position {
+			direction = W
+		}
+
+		pathClear := true
+		for nextPos := king.position + int(direction); nextPos != rook.position; nextPos += int(direction) {
+			// error in board setup or irrelevant if sentinel is found
+			if !board.IsEmpty(nextPos) {
+				pathClear = false
+				break
+			}
+		}
+
+		if !pathClear {
+			continue
+		}
+
+		moves = append(moves, Move{
+			Color:      king.color,
+			Symbol:     king.symbol,
+			From:       king.position,
+			To:         king.position + int(direction)*2,
+			IsCastling: true,
+			RookFrom:   rook.position,
+			RookTo:     king.position + int(direction),
+		})
+	}
+
+	return moves
 }

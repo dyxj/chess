@@ -46,13 +46,34 @@ func NewPiece(
 	symbol Symbol,
 	color Color,
 	position int,
+	hasMoved ...bool,
 ) *Piece {
+	hm := false
+	if len(hasMoved) > 0 {
+		hm = hasMoved[0]
+	}
 	return &Piece{
 		symbol:   symbol,
 		color:    color,
 		position: position,
-		hasMoved: false,
+		hasMoved: hm,
 	}
+}
+
+func (p *Piece) Symbol() Symbol {
+	return p.symbol
+}
+
+func (p *Piece) Color() Color {
+	return p.color
+}
+
+func (p *Piece) Position() int {
+	return p.position
+}
+
+func (p *Piece) HasMove() bool {
+	return p.hasMoved
 }
 
 var isSlidingPiece = map[Symbol]bool{

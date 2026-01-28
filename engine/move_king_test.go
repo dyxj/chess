@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"slices"
 	"testing"
 
 	. "github.com/dyxj/chess/engine"
@@ -14,11 +15,15 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 
 	tt := []struct {
 		name        string
+		piece       func() *Piece
 		otherPieces func() []*Piece
 		expect      func() []Move
 	}{
 		{
 			name: "all directions",
+			piece: func() *Piece {
+				return NewPiece(King, color, 54)
+			},
 			otherPieces: func() []*Piece {
 				return []*Piece{}
 			},
@@ -40,6 +45,9 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "blocked by same color pieces",
+			piece: func() *Piece {
+				return NewPiece(King, color, 54)
+			},
 			otherPieces: func() []*Piece {
 				return []*Piece{
 					NewPiece(Pawn, color, 64),
@@ -59,6 +67,9 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "capture",
+			piece: func() *Piece {
+				return NewPiece(King, color, 54)
+			},
 			otherPieces: func() []*Piece {
 				return []*Piece{
 					NewPiece(Pawn, xColor, 64),
@@ -87,7 +98,7 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			board := NewEmptyBoard()
-			tPiece := NewPiece(King, color, 54)
+			tPiece := tc.piece()
 			err := board.LoadPieces(
 				append(tc.otherPieces(), tPiece),
 			)
@@ -149,6 +160,275 @@ func TestKingEndOfBoard(t *testing.T) {
 			moves, err := GeneratePseudoLegalMoves(board, tPiece)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedNumberOfMoves, len(moves))
+		})
+	}
+}
+
+func TestKingCastlingMoves(t *testing.T) {
+
+	color := faker.Color()
+
+	tt := []struct {
+		name   string
+		pieces func() []*Piece
+		expect func(kingPos int) []Move
+	}{
+		{
+			name: "castling blocked by same color pieces",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Knight {
+						return true
+					}
+					return false
+				})
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				return []Move{}
+			},
+		},
+		{
+			name: "castling blocked by opposite color pieces",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				for i := 0; i < len(pieces); i++ {
+					if pieces[i].Symbol() == Bishop {
+						pieces[i] = NewPiece(Bishop, color.Opposite(), pieces[i].Position())
+					}
+				}
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight {
+						return true
+					}
+					return false
+				})
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				moves = append(moves, Move{
+					Color:    color,
+					Symbol:   King,
+					From:     kingPos,
+					To:       kingPos + int(E),
+					Captured: Bishop,
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+		{
+			name: "castling possible",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					return false
+				})
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+				base := 20
+				if color == Black {
+					base = 90
+				}
+
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+				moves = append(moves, Move{
+					Color:      color,
+					Symbol:     King,
+					From:       kingPos,
+					To:         kingPos + int(W)*2,
+					RookFrom:   base + 1,
+					RookTo:     kingPos + int(W),
+					IsCastling: true,
+				})
+				moves = append(moves, Move{
+					Color:      color,
+					Symbol:     King,
+					From:       kingPos,
+					To:         kingPos + int(E)*2,
+					RookFrom:   base + 8,
+					RookTo:     kingPos + int(E),
+					IsCastling: true,
+				})
+
+				return moves
+			},
+		},
+		{
+			name: "castling not possible due to moved rook",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				for i := 0; i < len(pieces); i++ {
+					if pieces[i].Symbol() == Rook {
+						pieces[i] = NewPiece(Rook, color, pieces[i].Position(), true)
+					}
+				}
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					return false
+				})
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+		{
+			name: "castling not possible due to moved king",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				for i := 0; i < len(pieces); i++ {
+					if pieces[i].Symbol() == King {
+						pieces[i] = NewPiece(King, color, pieces[i].Position(), true)
+					}
+				}
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					return false
+				})
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+		{
+			name: "reached sentinel due to invalid board setup",
+			pieces: func() []*Piece {
+				var pieces []*Piece
+				pieces = GenerateStartPieces(color)
+				direction := N
+				if color == Black {
+					direction = S
+				}
+				for i := 0; i < len(pieces); i++ {
+					if pieces[i].Symbol() == Rook {
+						pieces[i] = NewPiece(Rook, color, pieces[i].Position()+int(direction)*2)
+					}
+				}
+				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					return false
+				})
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			board := NewEmptyBoard()
+			pieces := tc.pieces()
+			err := board.LoadPieces(pieces)
+			assert.NoError(t, err)
+			kingIndex := slices.IndexFunc(pieces, func(p *Piece) bool {
+				if p.Symbol() == King {
+					return true
+				}
+				return false
+			})
+			if !assert.NotEqual(t, -1, kingIndex) {
+				t.FailNow()
+			}
+			king := pieces[kingIndex]
+			moves, err := GeneratePseudoLegalMoves(board, pieces[kingIndex])
+			assert.NoError(t, err)
+			moves = slices.DeleteFunc(moves, func(m Move) bool {
+				if m.Symbol != King {
+					return true
+				}
+				return false
+			})
+			assert.Equal(t, tc.expect(king.Position()), moves)
 		})
 	}
 }

@@ -102,6 +102,13 @@ func (b *Board) setPiece(p *Piece) error {
 	return nil
 }
 
+func (b *Board) Pieces(color Color) []*Piece {
+	if color == White {
+		return b.whitePieces
+	}
+	return b.blackPieces
+}
+
 func (b *Board) IsEmpty(i int) bool {
 	return b.cells[i] == EmptyCell
 }
