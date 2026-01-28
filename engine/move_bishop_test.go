@@ -14,13 +14,13 @@ func TestBishopPseudoLegalMoves(t *testing.T) {
 
 	tt := []struct {
 		name        string
-		otherPieces func() []*Piece
+		otherPieces func() []Piece
 		expect      func() []Move
 	}{
 		{
 			name: "end of board",
-			otherPieces: func() []*Piece {
-				return []*Piece{}
+			otherPieces: func() []Piece {
+				return []Piece{}
 			},
 			expect: func() []Move {
 				var moves []Move
@@ -35,8 +35,8 @@ func TestBishopPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "blocked by same color pieces",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Bishop, color, 76),
 					NewPiece(Bishop, color, 72),
 					NewPiece(Bishop, color, 36),
@@ -56,8 +56,8 @@ func TestBishopPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "capture",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Bishop, xColor, 76),
 					NewPiece(Bishop, xColor, 72),
 					NewPiece(Bishop, xColor, 36),

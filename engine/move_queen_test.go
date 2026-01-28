@@ -14,13 +14,13 @@ func TestQueenPseudoLegalMoves(t *testing.T) {
 
 	tt := []struct {
 		name        string
-		otherPieces func() []*Piece
+		otherPieces func() []Piece
 		expect      func() []Move
 	}{
 		{
 			name: "end of board",
-			otherPieces: func() []*Piece {
-				return []*Piece{}
+			otherPieces: func() []Piece {
+				return []Piece{}
 			},
 			expect: func() []Move {
 				var moves []Move
@@ -39,8 +39,8 @@ func TestQueenPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "blocked by same color pieces",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, color, 74),
 					NewPiece(Pawn, color, 44),
 					NewPiece(Pawn, color, 57),
@@ -68,8 +68,8 @@ func TestQueenPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "capture",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Rook, xColor, 84),
 					NewPiece(Rook, xColor, 44),
 					NewPiece(Rook, xColor, 55),

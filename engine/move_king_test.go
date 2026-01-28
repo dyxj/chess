@@ -15,17 +15,17 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 
 	tt := []struct {
 		name        string
-		piece       func() *Piece
-		otherPieces func() []*Piece
+		piece       func() Piece
+		otherPieces func() []Piece
 		expect      func() []Move
 	}{
 		{
 			name: "all directions",
-			piece: func() *Piece {
+			piece: func() Piece {
 				return NewPiece(King, color, 54)
 			},
-			otherPieces: func() []*Piece {
-				return []*Piece{}
+			otherPieces: func() []Piece {
+				return []Piece{}
 			},
 			expect: func() []Move {
 				var moves []Move
@@ -45,11 +45,11 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "blocked by same color pieces",
-			piece: func() *Piece {
+			piece: func() Piece {
 				return NewPiece(King, color, 54)
 			},
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, color, 64),
 					NewPiece(Pawn, color, 44),
 					NewPiece(Pawn, color, 55),
@@ -67,11 +67,11 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "capture",
-			piece: func() *Piece {
+			piece: func() Piece {
 				return NewPiece(King, color, 54)
 			},
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, xColor, 64),
 					NewPiece(Pawn, xColor, 55),
 					NewPiece(Pawn, xColor, 65),
@@ -154,7 +154,7 @@ func TestKingEndOfBoard(t *testing.T) {
 			board := NewEmptyBoard()
 			tPiece := NewPiece(King, color, tc.kingPosition)
 			err := board.LoadPieces(
-				append([]*Piece{}, tPiece),
+				append([]Piece{}, tPiece),
 			)
 			assert.NoError(t, err)
 			moves, err := GeneratePiecePseudoLegalMoves(board, tPiece)
@@ -170,15 +170,15 @@ func TestKingCastlingMoves(t *testing.T) {
 
 	tt := []struct {
 		name   string
-		pieces func() []*Piece
+		pieces func() []Piece
 		expect func(kingPos int) []Move
 	}{
 		{
 			name: "castling blocked by same color pieces",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Knight {
 						return true
 					}
@@ -192,15 +192,15 @@ func TestKingCastlingMoves(t *testing.T) {
 		},
 		{
 			name: "castling blocked by opposite color pieces",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
 				for i := 0; i < len(pieces); i++ {
 					if pieces[i].Symbol() == Bishop {
 						pieces[i] = NewPiece(Bishop, color.Opposite(), pieces[i].Position())
 					}
 				}
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Queen || p.Symbol() == Knight {
 						return true
 					}
@@ -231,10 +231,10 @@ func TestKingCastlingMoves(t *testing.T) {
 		},
 		{
 			name: "castling possible",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
 						return true
 					}
@@ -286,15 +286,15 @@ func TestKingCastlingMoves(t *testing.T) {
 		},
 		{
 			name: "castling not possible due to moved rook",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
 				for i := 0; i < len(pieces); i++ {
 					if pieces[i].Symbol() == Rook {
 						pieces[i] = NewPiece(Rook, color, pieces[i].Position(), true)
 					}
 				}
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
 						return true
 					}
@@ -324,15 +324,15 @@ func TestKingCastlingMoves(t *testing.T) {
 		},
 		{
 			name: "castling not possible due to moved king",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
 				for i := 0; i < len(pieces); i++ {
 					if pieces[i].Symbol() == King {
 						pieces[i] = NewPiece(King, color, pieces[i].Position(), true)
 					}
 				}
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
 						return true
 					}
@@ -362,8 +362,8 @@ func TestKingCastlingMoves(t *testing.T) {
 		},
 		{
 			name: "reached sentinel due to invalid board setup",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = GenerateStartPieces(color)
 				direction := N
 				if color == Black {
@@ -374,7 +374,7 @@ func TestKingCastlingMoves(t *testing.T) {
 						pieces[i] = NewPiece(Rook, color, pieces[i].Position()+int(direction)*2)
 					}
 				}
-				pieces = slices.DeleteFunc(pieces, func(p *Piece) bool {
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
 					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
 						return true
 					}
@@ -410,7 +410,7 @@ func TestKingCastlingMoves(t *testing.T) {
 			pieces := tc.pieces()
 			err := board.LoadPieces(pieces)
 			assert.NoError(t, err)
-			kingIndex := slices.IndexFunc(pieces, func(p *Piece) bool {
+			kingIndex := slices.IndexFunc(pieces, func(p Piece) bool {
 				if p.Symbol() == King {
 					return true
 				}

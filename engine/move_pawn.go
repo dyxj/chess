@@ -23,7 +23,7 @@ func pawnCaptureDirections(color Color) []Direction {
 	return pawnBlackDirections[2:]
 }
 
-func generatePseudoLegalPawnMoves(board *Board, piece *Piece) ([]Move, error) {
+func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
 	// Pawn move
@@ -99,7 +99,7 @@ func generatePseudoLegalPawnMoves(board *Board, piece *Piece) ([]Move, error) {
 var promotionSymbols = []Symbol{Queen, Rook, Bishop, Knight}
 
 func generatePawnPromotionMoves(
-	piece *Piece,
+	piece Piece,
 	nextPos int,
 	captured Symbol,
 ) []Move {
@@ -119,7 +119,7 @@ func generatePawnPromotionMoves(
 
 func generateEnPassantMovesIfEligible(
 	board *Board,
-	piece *Piece,
+	piece Piece,
 ) (Move, bool) {
 	lastMove, found := board.lastMove()
 	if !found {

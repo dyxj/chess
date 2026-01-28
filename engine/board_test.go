@@ -50,13 +50,13 @@ func TestBoard_IsSentinel(t *testing.T) {
 func TestLoadPiecesError(t *testing.T) {
 	tt := []struct {
 		name     string
-		pieces   func() []*Piece
+		pieces   func() []Piece
 		expected error
 	}{
 		{
 			name: "out of board(sentinel)",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = append(pieces, NewPiece(Pawn, White, 99))
 				return pieces
 			},
@@ -64,8 +64,8 @@ func TestLoadPiecesError(t *testing.T) {
 		},
 		{
 			name: "out of board(index out of range)",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = append(pieces, NewPiece(Pawn, White, 120))
 				return pieces
 			},
@@ -73,8 +73,8 @@ func TestLoadPiecesError(t *testing.T) {
 		},
 		{
 			name: "occupied",
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = append(pieces, NewPiece(Rook, White, 74))
 				pieces = append(pieces, NewPiece(Pawn, White, 74))
 				return pieces

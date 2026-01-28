@@ -12,17 +12,17 @@ func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
 	color := faker.Color()
 	tt := []struct {
 		name     string
-		selected func() *Piece
-		pieces   func() []*Piece
+		selected func() Piece
+		pieces   func() []Piece
 		expected error
 	}{
 		{
 			name: "piece not found(symbol mismatch)",
-			selected: func() *Piece {
+			selected: func() Piece {
 				return NewPiece(Rook, color, 74)
 			},
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = append(pieces, NewPiece(Pawn, color, 74))
 				return pieces
 			},
@@ -30,11 +30,11 @@ func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
 		},
 		{
 			name: "piece not found(color mismatch)",
-			selected: func() *Piece {
+			selected: func() Piece {
 				return NewPiece(Pawn, color.Opposite(), 74)
 			},
-			pieces: func() []*Piece {
-				var pieces []*Piece
+			pieces: func() []Piece {
+				var pieces []Piece
 				pieces = append(pieces, NewPiece(Pawn, color, 74))
 				return pieces
 			},

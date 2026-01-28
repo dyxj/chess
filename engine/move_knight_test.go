@@ -23,13 +23,13 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 
 	tt := []struct {
 		name        string
-		otherPieces func() []*Piece
+		otherPieces func() []Piece
 		expect      func() []Move
 	}{
 		{
 			name: "all directions",
-			otherPieces: func() []*Piece {
-				return []*Piece{}
+			otherPieces: func() []Piece {
+				return []Piece{}
 			},
 			expect: func() []Move {
 				var moves []Move
@@ -48,8 +48,8 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "blocked by same color pieces at final position",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, color, 75),
 					NewPiece(Pawn, color, 73),
 					NewPiece(Pawn, color, 35),
@@ -66,8 +66,8 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "capture",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, xColor, 75),
 					NewPiece(Pawn, xColor, 73),
 					NewPiece(Pawn, xColor, 35),
@@ -95,8 +95,8 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 		},
 		{
 			name: "jump over pieces",
-			otherPieces: func() []*Piece {
-				return []*Piece{
+			otherPieces: func() []Piece {
+				return []Piece{
 					NewPiece(Pawn, faker.Color(), 74),
 					NewPiece(Pawn, faker.Color(), 64),
 					NewPiece(Pawn, faker.Color(), 44),

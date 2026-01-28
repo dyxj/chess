@@ -47,12 +47,12 @@ func NewPiece(
 	color Color,
 	position int,
 	hasMoved ...bool,
-) *Piece {
+) Piece {
 	hm := false
 	if len(hasMoved) > 0 {
 		hm = hasMoved[0]
 	}
-	return &Piece{
+	return Piece{
 		symbol:   symbol,
 		color:    color,
 		position: position,
@@ -60,19 +60,19 @@ func NewPiece(
 	}
 }
 
-func (p *Piece) Symbol() Symbol {
+func (p Piece) Symbol() Symbol {
 	return p.symbol
 }
 
-func (p *Piece) Color() Color {
+func (p Piece) Color() Color {
 	return p.color
 }
 
-func (p *Piece) Position() int {
+func (p Piece) Position() int {
 	return p.position
 }
 
-func (p *Piece) HasMove() bool {
+func (p Piece) HasMove() bool {
 	return p.hasMoved
 }
 
@@ -149,8 +149,8 @@ func slidingMoversByDirection(direction Direction) []Symbol {
 	return nil
 }
 
-func GenerateStartPieces(color Color) []*Piece {
-	pp := make([]*Piece, 0, 16)
+func GenerateStartPieces(color Color) []Piece {
+	pp := make([]Piece, 0, 16)
 
 	pawnStart := 31
 	pawnEnd := 38

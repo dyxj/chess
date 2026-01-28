@@ -35,13 +35,12 @@ func GenerateLegalMoves(board *Board, color Color) ([]Move, error) {
 		board.undoMovePos(m)
 	}
 
-	// zeroing of illegal moves not required as pointers not used
 	return moves[:legalCount], nil
 }
 
 func GeneratePiecePseudoLegalMoves(
 	board *Board,
-	piece *Piece,
+	piece Piece,
 ) ([]Move, error) {
 	if board.Symbol(piece.position) != piece.symbol {
 		return nil, ErrPieceNotFound
@@ -63,7 +62,7 @@ func GeneratePiecePseudoLegalMoves(
 
 func generatePiecePseudoLegalMoves(
 	board *Board,
-	piece *Piece,
+	piece Piece,
 ) []Move {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
@@ -100,7 +99,7 @@ func generatePiecePseudoLegalMoves(
 // If all conditions are met, generate castling moves.
 // TODO should not be able to do if king is checked now
 // TODO check if king next position is under attack
-func generateCastlingMoves(board *Board, king *Piece) []Move {
+func generateCastlingMoves(board *Board, king Piece) []Move {
 	if king.symbol != King || king.hasMoved {
 		return nil
 	}

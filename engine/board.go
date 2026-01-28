@@ -34,8 +34,8 @@ Board
 */
 type Board struct {
 	cells        [boardSize]int
-	whitePieces  []*Piece
-	blackPieces  []*Piece
+	whitePieces  []Piece
+	blackPieces  []Piece
 	whiteKingPos int
 	blackKingPos int
 	moveHistory  []Move
@@ -67,14 +67,14 @@ func NewEmptyBoard() *Board {
 	}
 	b := &Board{
 		cells:       cells,
-		whitePieces: make([]*Piece, 0, 16),
-		blackPieces: make([]*Piece, 0, 16),
+		whitePieces: make([]Piece, 0, 16),
+		blackPieces: make([]Piece, 0, 16),
 		moveHistory: make([]Move, 0, 256),
 	}
 	return b
 }
 
-func (b *Board) LoadPieces(pp []*Piece) error {
+func (b *Board) LoadPieces(pp []Piece) error {
 	for _, p := range pp {
 		err := b.setPiece(p)
 		if err != nil {
@@ -84,7 +84,7 @@ func (b *Board) LoadPieces(pp []*Piece) error {
 	return nil
 }
 
-func (b *Board) setPiece(p *Piece) error {
+func (b *Board) setPiece(p Piece) error {
 	if p.position > len(b.cells)-1 {
 		return ErrOutOfBoard
 	}
@@ -103,7 +103,7 @@ func (b *Board) setPiece(p *Piece) error {
 	return nil
 }
 
-func (b *Board) Pieces(color Color) []*Piece {
+func (b *Board) Pieces(color Color) []Piece {
 	if color == White {
 		return b.whitePieces
 	}
@@ -286,7 +286,7 @@ func (b *Board) lastMove() (move Move, found bool) {
 	return b.moveHistory[len(b.moveHistory)-1], true
 }
 
-func boardSymbolPiece(p *Piece) int {
+func boardSymbolPiece(p Piece) int {
 	return int(p.symbol) * int(p.color)
 }
 
