@@ -255,16 +255,22 @@ func (b *Board) GridString() string {
 	return sb.String()
 }
 
-// TODO exported method to apply moves that also updates pieces
-
-// TODO en passant not handled here
 func (b *Board) applyMovePos(m Move) {
+	if m.IsEnPassant {
+		b.applyEnPassantMovePos(m)
+		return
+	}
+
 	b.cells[m.From] = EmptyCell
-	b.cells[m.To] = boardSymbolMove(m)
+	if m.Promotion == 0 {
+		b.cells[m.To] = boardSymbolMove(m)
+	} else {
+		b.cells[m.To] = boardSymbol(m.Promotion, m.Color)
+	}
 
 	if m.IsCastling {
 		b.cells[m.RookFrom] = EmptyCell
-		b.cells[m.RookTo] = int(Rook) * int(m.Color)
+		b.cells[m.RookTo] = boardSymbol(Rook, m.Color)
 	}
 
 	if m.Symbol == King {
@@ -272,22 +278,43 @@ func (b *Board) applyMovePos(m Move) {
 	}
 }
 
-// TODO enpassant not handled here
 func (b *Board) undoMovePos(m Move) {
+	if m.IsEnPassant {
+		b.undoEnPassantMovePos(m)
+		return
+	}
+
 	b.cells[m.From] = boardSymbolMove(m)
 	if m.Captured != 0 {
-		b.cells[m.To] = int(m.Captured) * int(-m.Color)
+		b.cells[m.To] = boardSymbol(m.Captured, m.Color.Opposite())
 	}
 	b.cells[m.To] = EmptyCell
 
 	if m.IsCastling {
-		b.cells[m.RookFrom] = int(Rook) * int(m.Color)
+		b.cells[m.RookFrom] = boardSymbol(Rook, m.Color)
 		b.cells[m.RookTo] = EmptyCell
 	}
 
 	if m.Symbol == King {
 		b.setKingPosition(m.Color, m.From)
 	}
+}
+
+func (b *Board) applyEnPassantMovePos(m Move) {
+	b.cells[m.From] = EmptyCell
+	b.cells[m.To] = boardSymbolMove(m)
+
+	pawnDirection := pawnMoveDirections(m.Color, true)[0]
+	capturedPawnPos := m.To - int(pawnDirection)
+	b.cells[capturedPawnPos] = EmptyCell
+}
+
+func (b *Board) undoEnPassantMovePos(m Move) {
+	b.cells[m.From] = boardSymbolMove(m)
+
+	pawnDirection := pawnMoveDirections(m.Color, true)[0]
+	capturedPawnPos := m.To - int(pawnDirection)
+	b.cells[capturedPawnPos] = boardSymbol(Pawn, m.Color.Opposite())
 }
 
 func (b *Board) undoMovesPos(moves []Move) {
@@ -309,6 +336,10 @@ func boardSymbolPiece(p Piece) int {
 
 func boardSymbolMove(m Move) int {
 	return int(m.Symbol) * int(m.Color)
+}
+
+func boardSymbol(s Symbol, color Color) int {
+	return int(s) * int(color)
 }
 
 func calculateBlankBoardValue(pos int) int {
