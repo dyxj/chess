@@ -255,23 +255,35 @@ func (b *Board) GridString() string {
 	return sb.String()
 }
 
-// TODO castling and en passant not handled here
+// TODO exported method to apply moves that also updates pieces
+
+// TODO en passant not handled here
 func (b *Board) applyMovePos(m Move) {
 	b.cells[m.From] = EmptyCell
-	b.cells[m.To] = boardSymbolMove(&m)
+	b.cells[m.To] = boardSymbolMove(m)
+
+	if m.IsCastling {
+		b.cells[m.RookFrom] = EmptyCell
+		b.cells[m.RookTo] = int(Rook) * int(m.Color)
+	}
 
 	if m.Symbol == King {
 		b.setKingPosition(m.Color, m.To)
 	}
 }
 
-// TODO castling and en passant not handled here
+// TODO enpassant not handled here
 func (b *Board) undoMovePos(m Move) {
-	b.cells[m.From] = boardSymbolMove(&m)
+	b.cells[m.From] = boardSymbolMove(m)
 	if m.Captured != 0 {
 		b.cells[m.To] = int(m.Captured) * int(-m.Color)
 	}
 	b.cells[m.To] = EmptyCell
+
+	if m.IsCastling {
+		b.cells[m.RookFrom] = int(Rook) * int(m.Color)
+		b.cells[m.RookTo] = EmptyCell
+	}
 
 	if m.Symbol == King {
 		b.setKingPosition(m.Color, m.From)
@@ -295,7 +307,7 @@ func boardSymbolPiece(p Piece) int {
 	return int(p.symbol) * int(p.color)
 }
 
-func boardSymbolMove(m *Move) int {
+func boardSymbolMove(m Move) int {
 	return int(m.Symbol) * int(m.Color)
 }
 
