@@ -3,7 +3,7 @@ package engine_test
 import (
 	"testing"
 
-	. "github.com/dyxj/chess/engine"
+	. "github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/test/faker"
 	"github.com/stretchr/testify/assert"
 )
