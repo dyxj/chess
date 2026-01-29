@@ -95,6 +95,9 @@ func (b *Board) setPiece(p Piece) error {
 		return ErrOccupied
 	}
 	b.cells[p.position] = boardSymbolPiece(p)
+	if p.symbol == King {
+		b.setKingPosition(p.color, p.position)
+	}
 	if p.color == White {
 		b.whitePieces = append(b.whitePieces, p)
 	} else {
@@ -209,17 +212,19 @@ func (b *Board) isUnderAttack(pos int, defender Color) bool {
 func (b *Board) isUnderAttackBySlider(pos int, direction Direction, attacker Color, symbols []Symbol) bool {
 	dInt := int(direction)
 	attackerPos := pos + dInt
-	for {
-		// sentinel(0), empty(0) or defenders color
-		if b.Color(attackerPos) != attacker {
+	defender := attacker.Opposite()
+	for ; ; attackerPos += dInt {
+		if b.IsSentinel(attackerPos) || b.Color(attackerPos) == defender {
 			break
+		}
+
+		if b.IsEmpty(attackerPos) {
+			continue
 		}
 
 		if slices.Contains(symbols, b.Symbol(attackerPos)) {
 			return true
 		}
-
-		attackerPos += dInt
 	}
 	return false
 }
