@@ -94,16 +94,20 @@ func generatePiecePseudoLegalMoves(
 	return moves
 }
 
-// generateCastlingMoves checks if king is King and if it hasn't moved.
-// Check if rooks haven't moved and if the path between king and rook is clear.
-// If all conditions are met, generate castling moves.
-// TODO should not be able to do if king is checked now
-// TODO check if king next position is under attack
+// generateCastlingMoves
+// - if king is King and if it hasn't moved
+// - if the path between king and rook is clear and rooks haven't moved
+// - if king is not checked
+// - if king destination is not under attack
+// Generates castling moves if all conditions are met
 func generateCastlingMoves(board *Board, king Piece) []Move {
 	if king.symbol != King || king.hasMoved {
 		return nil
 	}
 	pieces := board.Pieces(king.color)
+	if board.isKingUnderAttack(king.color) {
+		return nil
+	}
 
 	moves := make([]Move, 0, 2)
 	rooksFound := 0
@@ -135,11 +139,16 @@ func generateCastlingMoves(board *Board, king Piece) []Move {
 			continue
 		}
 
+		kingNextPos := king.position + int(direction)*2
+		if board.isUnderAttack(kingNextPos, king.color) {
+			continue
+		}
+
 		moves = append(moves, Move{
 			Color:      king.color,
 			Symbol:     king.symbol,
 			From:       king.position,
-			To:         king.position + int(direction)*2,
+			To:         kingNextPos,
 			IsCastling: true,
 			RookFrom:   rook.position,
 			RookTo:     king.position + int(direction),

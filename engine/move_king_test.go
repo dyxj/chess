@@ -285,6 +285,92 @@ func TestKingCastlingMoves(t *testing.T) {
 			},
 		},
 		{
+			name: "castling not possible due to check",
+			pieces: func() []Piece {
+				var pieces []Piece
+				pieces = GenerateStartPieces(color)
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					if p.Symbol() == Pawn && p.Position()%10 == 5 {
+						return true
+					}
+					return false
+				})
+				pieces = append(pieces, NewPiece(Rook, color.Opposite(), 55))
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				direction := N
+				if color == Black {
+					direction = S
+				}
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(direction),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+		{
+			name: "castling not possible due to after castling check",
+			pieces: func() []Piece {
+				var pieces []Piece
+				pieces = GenerateStartPieces(color)
+				pieces = slices.DeleteFunc(pieces, func(p Piece) bool {
+					if p.Symbol() == Queen || p.Symbol() == Knight || p.Symbol() == Bishop {
+						return true
+					}
+					if p.Symbol() == Pawn &&
+						(p.Position()%10 == 7 || p.Position()%10 == 3) {
+						return true
+					}
+					return false
+				})
+				pieces = append(pieces, NewPiece(Rook, color.Opposite(), 53))
+				pieces = append(pieces, NewPiece(Rook, color.Opposite(), 57))
+
+				return pieces
+			},
+			expect: func(kingPos int) []Move {
+				var moves []Move
+
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(E),
+				})
+				moves = append(moves, Move{
+					Color:  color,
+					Symbol: King,
+					From:   kingPos,
+					To:     kingPos + int(W),
+				})
+
+				return moves
+			},
+		},
+		{
 			name: "castling not possible due to moved rook",
 			pieces: func() []Piece {
 				var pieces []Piece
