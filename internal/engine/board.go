@@ -39,6 +39,7 @@ type Board struct {
 	whiteKingPos int
 	blackKingPos int
 	moveHistory  []Move
+	activeColor  Color
 }
 
 // NewBoard creates a new chess board with the initial pieces.
@@ -60,16 +61,21 @@ func NewBoard() *Board {
 	return b
 }
 
-func NewEmptyBoard() *Board {
+func NewEmptyBoard(activeColor ...Color) *Board {
 	cells := [boardSize]int{}
 	for pos := 0; pos < boardSize; pos++ {
 		cells[pos] = calculateBlankBoardValue(pos)
+	}
+	ac := White
+	if len(activeColor) > 0 {
+		ac = activeColor[0]
 	}
 	b := &Board{
 		cells:       cells,
 		whitePieces: make([]Piece, 0, 16),
 		blackPieces: make([]Piece, 0, 16),
 		moveHistory: make([]Move, 0, 256),
+		activeColor: ac,
 	}
 	return b
 }
@@ -253,6 +259,13 @@ func (b *Board) GridString() string {
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+func (b *Board) ApplyMove(m Move) {
+	b.applyMovePos(m)
+	// applyMovePos
+	// update piece list
+	// append to move history
 }
 
 func (b *Board) applyMovePos(m Move) {

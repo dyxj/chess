@@ -27,6 +27,30 @@ func TestNewBoard(t *testing.T) {
 
 	assert.Equal(t, 120, len(b.cells))
 	assert.Equal(t, expectedCells, b.cells)
+	assert.Equal(t, b.activeColor, White)
+}
+
+func TestNewEmptyBoard(t *testing.T) {
+	b := NewEmptyBoard(Black)
+
+	expectedCells := [120]int{
+		7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+		7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 0, 0, 0, 0, 0, 0, 0, 0, 7,
+		7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+		7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	}
+
+	assert.Equal(t, 120, len(b.cells))
+	assert.Equal(t, expectedCells, b.cells)
+	assert.Equal(t, b.activeColor, Black)
 }
 
 func TestBoard_IsEmpty(t *testing.T) {
