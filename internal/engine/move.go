@@ -128,7 +128,7 @@ func generatePiecePseudoLegalMoves(
 // - if king destination is not under attack
 // Generates castling moves if all conditions are met
 func generateCastlingMoves(board *Board, king Piece) []Move {
-	if king.symbol != King || king.hasMoved {
+	if king.symbol != King || king.HasMoved() {
 		return nil
 	}
 	pieces := board.Pieces(king.color)
@@ -143,7 +143,7 @@ func generateCastlingMoves(board *Board, king Piece) []Move {
 			continue
 		}
 		rooksFound++
-		if pieces[i].hasMoved {
+		if pieces[i].HasMoved() {
 			continue
 		}
 		rook := pieces[i]

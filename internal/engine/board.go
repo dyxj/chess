@@ -349,6 +349,7 @@ func (b *Board) undoMovesPos(moves []Move) {
 	}
 }
 
+// TODO have not set move state
 func (b *Board) applyMoveToPieceList(m Move) {
 
 	pp := b.Pieces(m.Color)
@@ -362,13 +363,6 @@ func (b *Board) applyMoveToPieceList(m Move) {
 		if m.IsEnPassant {
 			capturedPos = m.calculateEnPassantCapturedPos()
 		}
-
-		xpp = slices.DeleteFunc(xpp, func(p Piece) bool {
-			if p.symbol == m.Captured && p.position == m.To {
-				return true
-			}
-			return false
-		})
 
 		// Remove captured piece
 		for i := 0; i < len(xpp); i++ {
@@ -397,6 +391,7 @@ func (b *Board) applyMoveToPieceList(m Move) {
 	for i := 0; i < len(pp); i++ {
 		if pp[i].symbol == m.Symbol && pp[i].position == m.From {
 			pp[i].position = m.To
+			pp[i].hasMoved = true
 			break
 		}
 	}
@@ -406,6 +401,7 @@ func (b *Board) applyMoveToPieceList(m Move) {
 		for i := 0; i < len(pp); i++ {
 			if pp[i].symbol == Rook && pp[i].position == m.RookFrom {
 				pp[i].position = m.RookTo
+				pp[i].hasMoved = true
 				break
 			}
 		}
@@ -414,16 +410,19 @@ func (b *Board) applyMoveToPieceList(m Move) {
 	b.setPieces(m.Color, pp)
 }
 
+// TODO implement
 func (b *Board) undoMoveToPieceList(m Move) {
-
 }
 
 func (b *Board) addMoveToHistory(m Move) {
-
+	b.moveHistory = append(b.moveHistory, m)
 }
 
 func (b *Board) removeLastMoveFromHistory() {
-
+	// clear from last to cap
+	clear(b.moveHistory[len(b.moveHistory)-1:])
+	// reslice excluding last
+	b.moveHistory = b.moveHistory[:len(b.moveHistory)-1]
 }
 
 func (b *Board) lastMove() (move Move, found bool) {

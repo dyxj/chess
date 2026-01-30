@@ -85,7 +85,7 @@ func (p Piece) Position() int {
 	return p.position
 }
 
-func (p Piece) HasMove() bool {
+func (p Piece) HasMoved() bool {
 	return p.hasMoved
 }
 

@@ -27,7 +27,7 @@ func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
 	// Pawn move
-	moveDirections := pawnMoveDirections(piece.color, piece.hasMoved)
+	moveDirections := pawnMoveDirections(piece.color, piece.HasMoved())
 	for i := 0; i < len(moveDirections); i++ {
 		direction := moveDirections[i]
 		nextPos := piece.position + int(direction)
