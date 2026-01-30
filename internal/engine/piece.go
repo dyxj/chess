@@ -20,8 +20,21 @@ const (
 	Black Color = -1
 )
 
+var Colors = []Color{White, Black}
+
 func (c Color) Opposite() Color {
 	return c * -1
+}
+
+func (c Color) String() string {
+	switch c {
+	case White:
+		return "white"
+	case Black:
+		return "black"
+	default:
+		return "unknown"
+	}
 }
 
 type Symbol int

@@ -6,8 +6,6 @@ import (
 	"github.com/dyxj/chess/internal/engine"
 )
 
-var colors = []engine.Color{engine.White, engine.Black}
-
 func Color() engine.Color {
-	return colors[rand.IntN(len(colors))]
+	return engine.Colors[rand.IntN(len(engine.Colors))]
 }
