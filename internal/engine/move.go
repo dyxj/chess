@@ -15,6 +15,19 @@ type Move struct {
 	IsEnPassant bool
 }
 
+func (m Move) hasCaptured() bool {
+	return m.Captured != 0
+}
+
+func (m Move) hasPromotion() bool {
+	return m.Promotion != 0
+}
+
+func (m Move) calculateEnPassantCapturedPos() int {
+	pawnDirection := pawnMoveDirections(m.Color, true)[0]
+	return m.To - int(pawnDirection)
+}
+
 func GenerateLegalMoves(board *Board, color Color) ([]Move, error) {
 	moves := make([]Move, 0, maxMovesAllPieces)
 	pieces := board.Pieces(color)
@@ -25,6 +38,20 @@ func GenerateLegalMoves(board *Board, color Color) ([]Move, error) {
 		panic(err)
 	}
 
+	return filterLegalMoves(board, moves, color), nil
+}
+
+func GeneratePieceLegalMoves(board *Board, piece Piece) ([]Move, error) {
+	moves, err := GeneratePiecePseudoLegalMoves(board, piece)
+	if err != nil {
+		// panic used here as it is a programmer error if board and piece list is out of sync
+		panic(err)
+	}
+
+	return filterLegalMoves(board, moves, piece.color), nil
+}
+
+func filterLegalMoves(board *Board, moves []Move, color Color) []Move {
 	legalCount := 0
 	for i, m := range moves {
 		board.applyMovePos(m)
@@ -35,7 +62,7 @@ func GenerateLegalMoves(board *Board, color Color) ([]Move, error) {
 		board.undoMovePos(m)
 	}
 
-	return moves[:legalCount], nil
+	return moves[:legalCount]
 }
 
 func GeneratePiecePseudoLegalMoves(

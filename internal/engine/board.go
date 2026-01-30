@@ -82,7 +82,7 @@ func NewEmptyBoard(activeColor ...Color) *Board {
 
 func (b *Board) LoadPieces(pp []Piece) error {
 	for _, p := range pp {
-		err := b.setPiece(p)
+		err := b.loadPiece(p)
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (b *Board) LoadPieces(pp []Piece) error {
 	return nil
 }
 
-func (b *Board) setPiece(p Piece) error {
+func (b *Board) loadPiece(p Piece) error {
 	if p.position > len(b.cells)-1 {
 		return ErrOutOfBoard
 	}
@@ -117,6 +117,14 @@ func (b *Board) Pieces(color Color) []Piece {
 		return b.whitePieces
 	}
 	return b.blackPieces
+}
+
+func (b *Board) setPieces(color Color, pp []Piece) {
+	if color == White {
+		b.whitePieces = pp
+	} else {
+		b.blackPieces = pp
+	}
 }
 
 func (b *Board) kingPosition(color Color) int {
@@ -263,9 +271,18 @@ func (b *Board) GridString() string {
 
 func (b *Board) ApplyMove(m Move) {
 	b.applyMovePos(m)
-	// applyMovePos
-	// update piece list
-	// append to move history
+
+	b.applyMoveToPieceList(m)
+
+	b.addMoveToHistory(m)
+}
+
+func (b *Board) UndoMove(m Move) {
+	b.undoMovePos(m)
+
+	b.undoMoveToPieceList(m)
+
+	b.removeLastMoveFromHistory()
 }
 
 func (b *Board) applyMovePos(m Move) {
@@ -275,12 +292,12 @@ func (b *Board) applyMovePos(m Move) {
 	}
 
 	b.cells[m.From] = EmptyCell
-	if m.Promotion == 0 {
-		b.cells[m.To] = boardSymbolMove(m)
-	} else {
+	if m.hasPromotion() {
 		b.cells[m.To] = boardSymbol(m.Promotion, m.Color)
+		return
 	}
 
+	b.cells[m.To] = boardSymbolMove(m)
 	if m.IsCastling {
 		b.cells[m.RookFrom] = EmptyCell
 		b.cells[m.RookTo] = boardSymbol(Rook, m.Color)
@@ -298,7 +315,7 @@ func (b *Board) undoMovePos(m Move) {
 	}
 
 	b.cells[m.From] = boardSymbolMove(m)
-	if m.Captured != 0 {
+	if m.hasCaptured() {
 		b.cells[m.To] = boardSymbol(m.Captured, m.Color.Opposite())
 	}
 	b.cells[m.To] = EmptyCell
@@ -317,23 +334,96 @@ func (b *Board) applyEnPassantMovePos(m Move) {
 	b.cells[m.From] = EmptyCell
 	b.cells[m.To] = boardSymbolMove(m)
 
-	pawnDirection := pawnMoveDirections(m.Color, true)[0]
-	capturedPawnPos := m.To - int(pawnDirection)
-	b.cells[capturedPawnPos] = EmptyCell
+	b.cells[m.calculateEnPassantCapturedPos()] = EmptyCell
 }
 
 func (b *Board) undoEnPassantMovePos(m Move) {
 	b.cells[m.From] = boardSymbolMove(m)
 
-	pawnDirection := pawnMoveDirections(m.Color, true)[0]
-	capturedPawnPos := m.To - int(pawnDirection)
-	b.cells[capturedPawnPos] = boardSymbol(Pawn, m.Color.Opposite())
+	b.cells[m.calculateEnPassantCapturedPos()] = boardSymbol(Pawn, m.Color.Opposite())
 }
 
 func (b *Board) undoMovesPos(moves []Move) {
 	for i := len(moves) - 1; i >= 0; i-- {
 		b.undoMovePos(moves[i])
 	}
+}
+
+func (b *Board) applyMoveToPieceList(m Move) {
+
+	pp := b.Pieces(m.Color)
+
+	// Removing of captured piece
+	if m.hasCaptured() {
+		xColor := m.Color.Opposite()
+		xpp := b.Pieces(xColor)
+
+		capturedPos := m.To
+		if m.IsEnPassant {
+			capturedPos = m.calculateEnPassantCapturedPos()
+		}
+
+		xpp = slices.DeleteFunc(xpp, func(p Piece) bool {
+			if p.symbol == m.Captured && p.position == m.To {
+				return true
+			}
+			return false
+		})
+
+		// Remove captured piece
+		for i := 0; i < len(xpp); i++ {
+			if xpp[i].symbol == m.Captured && xpp[i].position == capturedPos {
+				xpp = slices.Delete(xpp, i, i+1)
+				break
+			}
+		}
+
+		b.setPieces(xColor, xpp)
+	}
+
+	if m.hasPromotion() {
+		// replace pawn with promoted piece
+		for i := 0; i < len(pp); i++ {
+			if pp[i].symbol == m.Symbol && pp[i].position == m.From {
+				pp[i] = NewPiece(m.Promotion, m.Color, m.To, true)
+				break
+			}
+		}
+		b.setPieces(m.Color, pp)
+		return
+	}
+
+	// Normal move: update piece position
+	for i := 0; i < len(pp); i++ {
+		if pp[i].symbol == m.Symbol && pp[i].position == m.From {
+			pp[i].position = m.To
+			break
+		}
+	}
+
+	// update rook position
+	if m.IsCastling {
+		for i := 0; i < len(pp); i++ {
+			if pp[i].symbol == Rook && pp[i].position == m.RookFrom {
+				pp[i].position = m.RookTo
+				break
+			}
+		}
+	}
+
+	b.setPieces(m.Color, pp)
+}
+
+func (b *Board) undoMoveToPieceList(m Move) {
+
+}
+
+func (b *Board) addMoveToHistory(m Move) {
+
+}
+
+func (b *Board) removeLastMoveFromHistory() {
+
 }
 
 func (b *Board) lastMove() (move Move, found bool) {
