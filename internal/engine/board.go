@@ -391,7 +391,7 @@ func (b *Board) applyMoveToPieceList(m Move) {
 	for i := 0; i < len(pp); i++ {
 		if pp[i].symbol == m.Symbol && pp[i].position == m.From {
 			pp[i].position = m.To
-			pp[i].hasMoved = true
+			pp[i].moveCount++
 			break
 		}
 	}
@@ -401,7 +401,7 @@ func (b *Board) applyMoveToPieceList(m Move) {
 		for i := 0; i < len(pp); i++ {
 			if pp[i].symbol == Rook && pp[i].position == m.RookFrom {
 				pp[i].position = m.RookTo
-				pp[i].hasMoved = true
+				pp[i].moveCount++
 				break
 			}
 		}

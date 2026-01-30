@@ -49,10 +49,10 @@ const (
 )
 
 type Piece struct {
-	symbol   Symbol
-	color    Color
-	position int
-	hasMoved bool
+	symbol    Symbol
+	color     Color
+	position  int
+	moveCount int
 }
 
 func NewPiece(
@@ -61,15 +61,15 @@ func NewPiece(
 	position int,
 	hasMoved ...bool,
 ) Piece {
-	hm := false
+	moveCount := 0
 	if len(hasMoved) > 0 {
-		hm = hasMoved[0]
+		moveCount = 1
 	}
 	return Piece{
-		symbol:   symbol,
-		color:    color,
-		position: position,
-		hasMoved: hm,
+		symbol:    symbol,
+		color:     color,
+		position:  position,
+		moveCount: moveCount,
 	}
 }
 
@@ -86,7 +86,7 @@ func (p Piece) Position() int {
 }
 
 func (p Piece) HasMoved() bool {
-	return p.hasMoved
+	return p.moveCount > 0
 }
 
 var isSlidingPiece = map[Symbol]bool{
