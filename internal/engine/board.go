@@ -307,7 +307,7 @@ func (b *Board) UndoLastRound() (hasLastRound bool) {
 
 	b.undoMovePos(r.Move)
 
-	b.undoMoveToPieceList(r.Move)
+	b.undoMovePieceList(r.Move)
 
 	b.drawCounter = r.PrevDrawCounter
 
@@ -444,8 +444,57 @@ func (b *Board) applyMoveToPieceList(m Move) {
 	b.setPieces(m.Color, pp)
 }
 
-// TODO implement
-func (b *Board) undoMoveToPieceList(m Move) {
+// undoMovePieceList update piece list by reverting move
+// panics if last piece in graveyard does not match captured move
+func (b *Board) undoMovePieceList(m Move) {
+	pp := b.Pieces(m.Color)
+
+	if m.hasCaptured() {
+		capturedPiece, hasCaptured := b.popGraveyard()
+		if hasCaptured {
+			if capturedPiece.symbol != m.Captured {
+				// board out of sync, programmer error
+				panic("graveyard symbol don't match move symbol")
+			}
+			xpp := b.Pieces(capturedPiece.Color())
+			xpp = append(xpp, capturedPiece)
+
+			b.setPieces(capturedPiece.Color(), xpp)
+		}
+	}
+
+	if m.hasPromotion() {
+		// replaced promoted with pawn
+		for i := 0; i < len(pp); i++ {
+			if pp[i].symbol == m.Promotion && pp[i].position == m.To {
+				pp[i] = NewPiece(m.Symbol, m.Color, m.From, true)
+				break
+			}
+		}
+		b.setPieces(m.Color, pp)
+		return
+	}
+
+	// Normal move: revert piece position
+	for i := 0; i < len(pp); i++ {
+		if pp[i].symbol == m.Symbol && pp[i].position == m.To {
+			pp[i].position = m.From
+			pp[i].moveCount--
+			break
+		}
+	}
+
+	if m.IsCastling {
+		for i := 0; i < len(pp); i++ {
+			if pp[i].symbol == Rook && pp[i].position == m.RookTo {
+				pp[i].position = m.RookFrom
+				pp[i].moveCount--
+				break
+			}
+		}
+	}
+
+	b.setPieces(m.Color, pp)
 }
 
 func (b *Board) addRoundToHistory(r Round) {
@@ -453,8 +502,6 @@ func (b *Board) addRoundToHistory(r Round) {
 }
 
 func (b *Board) removeLastRoundFromHistory() {
-	// clear from last to cap
-	clear(b.roundHistory[len(b.roundHistory)-1:])
 	// reslice excluding last
 	b.roundHistory = b.roundHistory[:len(b.roundHistory)-1]
 }
@@ -502,6 +549,29 @@ func (b *Board) Is100MoveDraw() bool {
 	return b.drawCounter >= 100
 }
 
+func (b *Board) popGraveyard() (Piece, bool) {
+	if len(b.graveyard) == 0 {
+		return Piece{}, false
+	}
+
+	lastPiece := b.graveyard[len(b.graveyard)-1]
+
+	// reslice excluding last
+	b.graveyard = b.graveyard[:len(b.graveyard)-1]
+
+	return lastPiece, true
+}
+
+// Round
+// Move: applied move
+// PrevDrawCounter draw counter from previous round
+// BoardStateHash calculated after move applied and with opposite color
+type Round struct {
+	Move            Move
+	PrevDrawCounter int
+	BoardStateHash  string
+}
+
 func boardSymbolPiece(p Piece) int {
 	return int(p.symbol) * int(p.color)
 }
@@ -523,14 +593,4 @@ func calculateBlankBoardValue(pos int) int {
 	}
 
 	return EmptyCell
-}
-
-// Round
-// Move: applied move
-// PrevDrawCounter draw counter from previous round
-// BoardStateHash calculated after move applied and with opposite color
-type Round struct {
-	Move            Move
-	PrevDrawCounter int
-	BoardStateHash  string
 }
