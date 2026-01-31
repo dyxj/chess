@@ -150,7 +150,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "moved position with capture(white)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 44)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -171,7 +171,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "moved position with capture(black)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, Black, 74)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -192,7 +192,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "promotion(white)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 84)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -212,7 +212,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "promotion(black)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, Black, 34)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -232,7 +232,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "capture promotion(white)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 84)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -259,7 +259,7 @@ func TestPawnPseudoLegalMoves(t *testing.T) {
 			name: "capture promotion(black)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, Black, 34)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
@@ -311,13 +311,13 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "white(east)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 64)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				piece := NewPiece(Pawn, Black, 65)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece)
 				return pieces
 			},
@@ -337,13 +337,13 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "white(west)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 64)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				piece := NewPiece(Pawn, Black, 63)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece)
 				return pieces
 			},
@@ -363,13 +363,13 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "black(east)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, Black, 54)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				piece := NewPiece(Pawn, White, 55)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece)
 				return pieces
 			},
@@ -389,13 +389,13 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "black(west)",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, Black, 54)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				piece := NewPiece(Pawn, White, 53)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece)
 				return pieces
 			},
@@ -415,13 +415,13 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "last move not pawn double step, but is beside pawn that double stepped earlier",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 64)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				piece := NewPiece(Pawn, Black, 63)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece, NewPiece(Rook, Black, 41), NewPiece(Rook, Black, 78))
 				return pieces
 			},
@@ -442,14 +442,14 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 			name: "move history and board out of sync",
 			startingPiece: func() Piece {
 				piece := NewPiece(Pawn, White, 64)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				return piece
 			},
 			otherPieces: func() []Piece {
 				var pieces []Piece
 				// Note that this should be a Pawn
 				piece := NewPiece(Rook, Black, 63)
-				piece.hasMoved = true
+				piece.moveCount = 1
 				pieces = append(pieces, piece)
 				return pieces
 			},

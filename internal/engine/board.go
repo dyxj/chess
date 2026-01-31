@@ -33,13 +33,16 @@ Board
 |  0. 7|  1. 7|  2. 7|  3. 7|  4. 7|  5. 7|  6. 7|  7. 7|  8. 7|  9. 7|
 */
 type Board struct {
-	cells        [boardSize]int
-	whitePieces  []Piece
-	blackPieces  []Piece
-	whiteKingPos int
-	blackKingPos int
-	moveHistory  []Move
-	activeColor  Color
+	cells                  [boardSize]int
+	whitePieces            []Piece
+	blackPieces            []Piece
+	whiteKingPos           int
+	blackKingPos           int
+	roundHistory           []Round
+	activeColor            Color
+	graveyard              []Piece
+	drawCounter            int
+	boardStateHashMapCount map[string]int
 }
 
 // NewBoard creates a new chess board with the initial pieces.
@@ -71,11 +74,14 @@ func NewEmptyBoard(activeColor ...Color) *Board {
 		ac = activeColor[0]
 	}
 	b := &Board{
-		cells:       cells,
-		whitePieces: make([]Piece, 0, 16),
-		blackPieces: make([]Piece, 0, 16),
-		moveHistory: make([]Move, 0, 256),
-		activeColor: ac,
+		cells:                  cells,
+		whitePieces:            make([]Piece, 0, 16),
+		blackPieces:            make([]Piece, 0, 16),
+		roundHistory:           make([]Round, 0, 256),
+		graveyard:              make([]Piece, 0, 32),
+		activeColor:            ac,
+		drawCounter:            0,
+		boardStateHashMapCount: make(map[string]int, 256),
 	}
 	return b
 }
@@ -269,20 +275,49 @@ func (b *Board) GridString() string {
 	return sb.String()
 }
 
-func (b *Board) ApplyMove(m Move) {
+func (b *Board) ApplyMove(m Move) error {
+	if m.Color != b.activeColor {
+		return ErrNotActiveColor
+	}
+	r := Round{
+		Move:            m,
+		PrevDrawCounter: b.drawCounter,
+	}
+
 	b.applyMovePos(m)
 
 	b.applyMoveToPieceList(m)
 
-	b.addMoveToHistory(m)
+	b.setDrawCounter(m)
+
+	b.activeColor = b.activeColor.Opposite()
+
+	r.BoardStateHash = b.CalculateBoardStateHash()
+	b.boardStateHashMapCount[r.BoardStateHash]++
+
+	b.addRoundToHistory(r)
+	return nil
 }
 
-func (b *Board) UndoMove(m Move) {
-	b.undoMovePos(m)
+func (b *Board) UndoLastRound() (hasLastRound bool) {
+	r, found := b.lastRound()
+	if !found {
+		return false
+	}
 
-	b.undoMoveToPieceList(m)
+	b.undoMovePos(r.Move)
 
-	b.removeLastMoveFromHistory()
+	b.undoMoveToPieceList(r.Move)
+
+	b.drawCounter = r.PrevDrawCounter
+
+	b.activeColor = b.activeColor.Opposite()
+
+	b.boardStateHashMapCount[r.BoardStateHash]--
+
+	b.removeLastRoundFromHistory()
+
+	return true
 }
 
 func (b *Board) applyMovePos(m Move) {
@@ -349,12 +384,10 @@ func (b *Board) undoMovesPos(moves []Move) {
 	}
 }
 
-// TODO have not set move state
 func (b *Board) applyMoveToPieceList(m Move) {
 
 	pp := b.Pieces(m.Color)
 
-	// Removing of captured piece
 	if m.hasCaptured() {
 		xColor := m.Color.Opposite()
 		xpp := b.Pieces(xColor)
@@ -367,6 +400,7 @@ func (b *Board) applyMoveToPieceList(m Move) {
 		// Remove captured piece
 		for i := 0; i < len(xpp); i++ {
 			if xpp[i].symbol == m.Captured && xpp[i].position == capturedPos {
+				b.graveyard = append(b.graveyard, xpp[i])
 				xpp = slices.Delete(xpp, i, i+1)
 				break
 			}
@@ -414,22 +448,58 @@ func (b *Board) applyMoveToPieceList(m Move) {
 func (b *Board) undoMoveToPieceList(m Move) {
 }
 
-func (b *Board) addMoveToHistory(m Move) {
-	b.moveHistory = append(b.moveHistory, m)
+func (b *Board) addRoundToHistory(r Round) {
+	b.roundHistory = append(b.roundHistory, r)
 }
 
-func (b *Board) removeLastMoveFromHistory() {
+func (b *Board) removeLastRoundFromHistory() {
 	// clear from last to cap
-	clear(b.moveHistory[len(b.moveHistory)-1:])
+	clear(b.roundHistory[len(b.roundHistory)-1:])
 	// reslice excluding last
-	b.moveHistory = b.moveHistory[:len(b.moveHistory)-1]
+	b.roundHistory = b.roundHistory[:len(b.roundHistory)-1]
+}
+
+func (b *Board) lastRound() (round Round, found bool) {
+	if len(b.roundHistory) == 0 {
+		return Round{}, false
+	}
+	return b.roundHistory[len(b.roundHistory)-1], true
 }
 
 func (b *Board) lastMove() (move Move, found bool) {
-	if len(b.moveHistory) == 0 {
+	round, found := b.lastRound()
+	if !found {
 		return Move{}, false
 	}
-	return b.moveHistory[len(b.moveHistory)-1], true
+	return round.Move, true
+}
+
+// TODO implement
+func (b *Board) CalculateBoardStateHash() string {
+	return ""
+}
+
+func (b *Board) Is3FoldDraw(hash string) bool {
+	count := b.boardStateHashMapCount[hash]
+	if count >= 3 {
+		return true
+	}
+	return false
+}
+
+// setDrawCounter
+// 1 : increment
+// 0 : reset
+// Should increment if a pawn has moved or a piece was captured
+func (b *Board) setDrawCounter(m Move) {
+	if m.Symbol == Pawn || m.Captured != 0 {
+		b.drawCounter++
+	}
+	b.drawCounter = 0
+}
+
+func (b *Board) Is100MoveDraw() bool {
+	return b.drawCounter >= 100
 }
 
 func boardSymbolPiece(p Piece) int {
@@ -453,4 +523,14 @@ func calculateBlankBoardValue(pos int) int {
 	}
 
 	return EmptyCell
+}
+
+// Round
+// Move: applied move
+// PrevDrawCounter draw counter from previous round
+// BoardStateHash calculated after move applied and with opposite color
+type Round struct {
+	Move            Move
+	PrevDrawCounter int
+	BoardStateHash  string
 }
