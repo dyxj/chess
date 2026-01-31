@@ -469,7 +469,14 @@ func TestPawnEnPassantPseudoLegalMoves(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			board := NewEmptyBoard()
-			board.moveHistory = tc.moveHistory()
+			moveHistory := tc.moveHistory()
+			roundHistory := make([]Round, 0, len(moveHistory))
+			for _, move := range moveHistory {
+				roundHistory = append(roundHistory, Round{
+					Move: move,
+				})
+			}
+			board.roundHistory = roundHistory
 			tPiece := tc.startingPiece()
 			err := board.LoadPieces(
 				append(tc.otherPieces(), tPiece),

@@ -42,7 +42,7 @@ type Board struct {
 	activeColor            Color
 	graveyard              []Piece
 	drawCounter            int
-	boardStateHashMapCount map[string]int
+	boardStateHashMapCount map[uint64]int
 }
 
 // NewBoard creates a new chess board with the initial pieces.
@@ -81,7 +81,7 @@ func NewEmptyBoard(activeColor ...Color) *Board {
 		graveyard:              make([]Piece, 0, 32),
 		activeColor:            ac,
 		drawCounter:            0,
-		boardStateHashMapCount: make(map[string]int, 256),
+		boardStateHashMapCount: make(map[uint64]int, 256),
 	}
 	return b
 }
@@ -292,7 +292,7 @@ func (b *Board) ApplyMove(m Move) error {
 
 	b.activeColor = b.activeColor.Opposite()
 
-	r.BoardStateHash = b.CalculateBoardStateHash()
+	r.BoardStateHash = b.calculateBoardStateHash(m, b.activeColor)
 	b.boardStateHashMapCount[r.BoardStateHash]++
 
 	b.addRoundToHistory(r)
@@ -521,12 +521,7 @@ func (b *Board) lastMove() (move Move, found bool) {
 	return round.Move, true
 }
 
-// TODO implement
-func (b *Board) CalculateBoardStateHash() string {
-	return ""
-}
-
-func (b *Board) Is3FoldDraw(hash string) bool {
+func (b *Board) Is3FoldDraw(hash uint64) bool {
 	count := b.boardStateHashMapCount[hash]
 	if count >= 3 {
 		return true
@@ -569,7 +564,7 @@ func (b *Board) popGraveyard() (Piece, bool) {
 type Round struct {
 	Move            Move
 	PrevDrawCounter int
-	BoardStateHash  string
+	BoardStateHash  uint64
 }
 
 func boardSymbolPiece(p Piece) int {
