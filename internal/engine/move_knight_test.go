@@ -1,15 +1,14 @@
-package engine_test
+package engine
 
 import (
 	"testing"
 
-	. "github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/test/faker"
+	"github.com/dyxj/chess/pkg/randx"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestKnightPseudoLegalMoves(t *testing.T) {
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 	xColor := color.Opposite()
 
 	NNE := N + N + E // 21
@@ -97,14 +96,14 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 			name: "jump over pieces",
 			otherPieces: func() []Piece {
 				return []Piece{
-					NewPiece(Pawn, faker.Color(), 74),
-					NewPiece(Pawn, faker.Color(), 64),
-					NewPiece(Pawn, faker.Color(), 44),
-					NewPiece(Pawn, faker.Color(), 34),
-					NewPiece(Pawn, faker.Color(), 55),
-					NewPiece(Pawn, faker.Color(), 56),
-					NewPiece(Pawn, faker.Color(), 53),
-					NewPiece(Pawn, faker.Color(), 52),
+					NewPiece(Pawn, color, 74),
+					NewPiece(Pawn, xColor, 64),
+					NewPiece(Pawn, color, 44),
+					NewPiece(Pawn, xColor, 34),
+					NewPiece(Pawn, color, 55),
+					NewPiece(Pawn, xColor, 56),
+					NewPiece(Pawn, color, 53),
+					NewPiece(Pawn, xColor, 52),
 				}
 			},
 			expect: func() []Move {

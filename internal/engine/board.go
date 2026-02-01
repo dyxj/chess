@@ -38,7 +38,7 @@ type Board struct {
 	blackPieces            []Piece
 	whiteKingPos           int
 	blackKingPos           int
-	roundHistory           []Round
+	roundHistory           []round
 	activeColor            Color
 	graveyard              []Piece
 	drawCounter            int
@@ -77,7 +77,7 @@ func NewEmptyBoard(activeColor ...Color) *Board {
 		cells:                  cells,
 		whitePieces:            make([]Piece, 0, 16),
 		blackPieces:            make([]Piece, 0, 16),
-		roundHistory:           make([]Round, 0, 256),
+		roundHistory:           make([]round, 0, 256),
 		graveyard:              make([]Piece, 0, 32),
 		activeColor:            ac,
 		drawCounter:            0,
@@ -279,7 +279,7 @@ func (b *Board) ApplyMove(m Move) error {
 	if m.Color != b.activeColor {
 		return ErrNotActiveColor
 	}
-	r := Round{
+	r := round{
 		Move:            m,
 		PrevDrawCounter: b.drawCounter,
 	}
@@ -299,7 +299,7 @@ func (b *Board) ApplyMove(m Move) error {
 	return nil
 }
 
-func (b *Board) UndoLastRound() (hasLastRound bool) {
+func (b *Board) UndoLastMove() (ok bool) {
 	r, found := b.lastRound()
 	if !found {
 		return false
@@ -497,7 +497,7 @@ func (b *Board) undoMovePieceList(m Move) {
 	b.setPieces(m.Color, pp)
 }
 
-func (b *Board) addRoundToHistory(r Round) {
+func (b *Board) addRoundToHistory(r round) {
 	b.roundHistory = append(b.roundHistory, r)
 }
 
@@ -506,9 +506,9 @@ func (b *Board) removeLastRoundFromHistory() {
 	b.roundHistory = b.roundHistory[:len(b.roundHistory)-1]
 }
 
-func (b *Board) lastRound() (round Round, found bool) {
+func (b *Board) lastRound() (round, bool) {
 	if len(b.roundHistory) == 0 {
-		return Round{}, false
+		return round{}, false
 	}
 	return b.roundHistory[len(b.roundHistory)-1], true
 }
@@ -555,16 +555,6 @@ func (b *Board) popGraveyard() (Piece, bool) {
 	b.graveyard = b.graveyard[:len(b.graveyard)-1]
 
 	return lastPiece, true
-}
-
-// Round
-// Move: applied move
-// PrevDrawCounter draw counter from previous round
-// BoardStateHash calculated after move applied and with opposite color
-type Round struct {
-	Move            Move
-	PrevDrawCounter int
-	BoardStateHash  uint64
 }
 
 func boardSymbolPiece(p Piece) int {

@@ -1,16 +1,15 @@
-package engine_test
+package engine
 
 import (
 	"slices"
 	"testing"
 
-	. "github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/test/faker"
+	"github.com/dyxj/chess/pkg/randx"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestKingPseudoLegalMoves(t *testing.T) {
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 	xColor := color.Opposite()
 
 	tt := []struct {
@@ -111,7 +110,7 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 }
 
 func TestKingEndOfBoard(t *testing.T) {
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 	tt := []struct {
 		name                  string
 		kingPosition          int
@@ -166,7 +165,7 @@ func TestKingEndOfBoard(t *testing.T) {
 
 func TestKingCastlingMoves(t *testing.T) {
 
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 
 	tt := []struct {
 		name   string

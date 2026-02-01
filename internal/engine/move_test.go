@@ -1,15 +1,14 @@
-package engine_test
+package engine
 
 import (
 	"testing"
 
-	. "github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/test/faker"
+	"github.com/dyxj/chess/pkg/randx"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 	tt := []struct {
 		name     string
 		selected func() Piece

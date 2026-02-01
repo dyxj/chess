@@ -1,15 +1,14 @@
-package engine_test
+package engine
 
 import (
 	"testing"
 
-	. "github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/test/faker"
+	"github.com/dyxj/chess/pkg/randx"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestQueenPseudoLegalMoves(t *testing.T) {
-	color := faker.Color()
+	color := randx.FromSlice(Colors)
 	xColor := color.Opposite()
 
 	tt := []struct {
