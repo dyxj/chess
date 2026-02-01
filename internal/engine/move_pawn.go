@@ -23,7 +23,7 @@ func pawnCaptureDirections(color Color) []Direction {
 	return pawnBlackDirections[2:]
 }
 
-func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
+func (b *Board) generatePseudoLegalPawnMoves(piece Piece) ([]Move, error) {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
 	// Pawn move
@@ -33,17 +33,17 @@ func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 		nextPos := piece.position + int(direction)
 
 		// sentinel should never happen due to promotion
-		if !board.IsEmpty(nextPos) || board.IsSentinel(nextPos) {
+		if !b.IsEmpty(nextPos) || b.IsSentinel(nextPos) {
 			// if first forward is not empty, skip the double lastMove forward
 			break
 		}
 
 		if piece.color == White && nextPos >= 91 && nextPos <= 98 {
-			moves = append(moves, generatePawnPromotionMoves(piece, nextPos, 0)...)
+			moves = append(moves, b.generatePawnPromotionMoves(piece, nextPos, 0)...)
 			continue
 		}
 		if piece.color == Black && nextPos >= 21 && nextPos <= 28 {
-			moves = append(moves, generatePawnPromotionMoves(piece, nextPos, 0)...)
+			moves = append(moves, b.generatePawnPromotionMoves(piece, nextPos, 0)...)
 			continue
 		}
 
@@ -63,18 +63,18 @@ func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 		nextPos := piece.position + int(direction)
 
 		// sentinel should never happen due to promotion
-		if board.IsEmpty(nextPos) || board.Color(nextPos) == piece.color || board.IsSentinel(nextPos) {
+		if b.IsEmpty(nextPos) || b.Color(nextPos) == piece.color || b.IsSentinel(nextPos) {
 			continue
 		}
 
-		captured := board.Symbol(nextPos)
+		captured := b.Symbol(nextPos)
 
 		if piece.color == White && nextPos >= 91 && nextPos <= 98 {
-			moves = append(moves, generatePawnPromotionMoves(piece, nextPos, captured)...)
+			moves = append(moves, b.generatePawnPromotionMoves(piece, nextPos, captured)...)
 			continue
 		}
 		if piece.color == Black && nextPos >= 21 && nextPos <= 28 {
-			moves = append(moves, generatePawnPromotionMoves(piece, nextPos, captured)...)
+			moves = append(moves, b.generatePawnPromotionMoves(piece, nextPos, captured)...)
 			continue
 		}
 
@@ -88,7 +88,7 @@ func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 	}
 
 	// en passant
-	enPassantMove, isEnPassant := generateEnPassantMovesIfEligible(board, piece)
+	enPassantMove, isEnPassant := b.generateEnPassantMovesIfEligible(piece)
 	if isEnPassant {
 		moves = append(moves, enPassantMove)
 	}
@@ -98,7 +98,7 @@ func generatePseudoLegalPawnMoves(board *Board, piece Piece) ([]Move, error) {
 
 var promotionSymbols = []Symbol{Queen, Rook, Bishop, Knight}
 
-func generatePawnPromotionMoves(
+func (b *Board) generatePawnPromotionMoves(
 	piece Piece,
 	nextPos int,
 	captured Symbol,
@@ -117,11 +117,8 @@ func generatePawnPromotionMoves(
 	return moves
 }
 
-func generateEnPassantMovesIfEligible(
-	board *Board,
-	piece Piece,
-) (Move, bool) {
-	lastMove, found := board.lastMove()
+func (b *Board) generateEnPassantMovesIfEligible(piece Piece) (Move, bool) {
+	lastMove, found := b.lastMove()
 	if !found {
 		return Move{}, false
 	}
@@ -134,7 +131,7 @@ func generateEnPassantMovesIfEligible(
 		mathx.AbsInt(piece.position-lastMove.To) == 1 &&
 		// check board symbol is pawn and color is opposite
 		// board and move history should be sync, but check just in case
-		(board.Symbol(lastMove.To) == Pawn && board.Color(lastMove.To) != piece.color) {
+		(b.Symbol(lastMove.To) == Pawn && b.Color(lastMove.To) != piece.color) {
 		return Move{
 			Color:       piece.color,
 			Symbol:      piece.symbol,

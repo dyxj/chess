@@ -131,7 +131,7 @@ func TestKnightPseudoLegalMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves, err := GeneratePiecePseudoLegalMoves(board, tPiece)
+			moves, err := board.GeneratePiecePseudoLegalMoves(tPiece)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expect(), moves)
 		})

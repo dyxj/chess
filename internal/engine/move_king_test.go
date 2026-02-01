@@ -102,7 +102,7 @@ func TestKingPseudoLegalMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves, err := GeneratePiecePseudoLegalMoves(board, tPiece)
+			moves, err := board.GeneratePiecePseudoLegalMoves(tPiece)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expect(), moves)
 		})
@@ -156,7 +156,7 @@ func TestKingEndOfBoard(t *testing.T) {
 				append([]Piece{}, tPiece),
 			)
 			assert.NoError(t, err)
-			moves, err := GeneratePiecePseudoLegalMoves(board, tPiece)
+			moves, err := board.GeneratePiecePseudoLegalMoves(tPiece)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedNumberOfMoves, len(moves))
 		})
@@ -505,7 +505,7 @@ func TestKingCastlingMoves(t *testing.T) {
 				t.FailNow()
 			}
 			king := pieces[kingIndex]
-			moves, err := GeneratePiecePseudoLegalMoves(board, pieces[kingIndex])
+			moves, err := board.GeneratePiecePseudoLegalMoves(pieces[kingIndex])
 			assert.NoError(t, err)
 			moves = slices.DeleteFunc(moves, func(m Move) bool {
 				if m.Symbol != King {

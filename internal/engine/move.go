@@ -28,69 +28,62 @@ func (m Move) calculateEnPassantCapturedPos() int {
 	return m.To - int(pawnDirection)
 }
 
-func GenerateLegalMoves(board *Board, color Color) ([]Move, error) {
+func (b *Board) GenerateLegalMoves(color Color) ([]Move, error) {
 	moves := make([]Move, 0, maxMovesAllPieces)
-	pieces := board.Pieces(color)
+	pieces := b.Pieces(color)
 	for _, piece := range pieces {
 		var err error
-		moves, err = GeneratePiecePseudoLegalMoves(board, piece)
-		// panic used here as it is a programmer error if board and piece list is out of sync
+		moves, err = b.GeneratePiecePseudoLegalMoves(piece)
+		// panic used here as it is a programmer error if b and piece list is out of sync
 		panic(err)
 	}
 
-	return filterLegalMoves(board, moves, color), nil
+	return b.filterLegalMoves(moves, color), nil
 }
 
-func GeneratePieceLegalMoves(board *Board, piece Piece) ([]Move, error) {
-	moves, err := GeneratePiecePseudoLegalMoves(board, piece)
+func (b *Board) GeneratePieceLegalMoves(piece Piece) ([]Move, error) {
+	moves, err := b.GeneratePiecePseudoLegalMoves(piece)
 	if err != nil {
-		// panic used here as it is a programmer error if board and piece list is out of sync
-		panic(err)
+		return nil, err
 	}
 
-	return filterLegalMoves(board, moves, piece.color), nil
+	return b.filterLegalMoves(moves, piece.color), nil
 }
 
-func filterLegalMoves(board *Board, moves []Move, color Color) []Move {
+func (b *Board) filterLegalMoves(moves []Move, color Color) []Move {
 	legalCount := 0
 	for i, m := range moves {
-		board.applyMovePos(m)
-		if !board.isKingUnderAttack(color) {
+		b.applyMovePos(m)
+		if !b.isKingUnderAttack(color) {
 			moves[legalCount] = moves[i]
 			legalCount++
 		}
-		board.undoMovePos(m)
+		b.undoMovePos(m)
 	}
 
 	return moves[:legalCount]
 }
 
-func GeneratePiecePseudoLegalMoves(
-	board *Board,
-	piece Piece,
-) ([]Move, error) {
-	if board.Symbol(piece.position) != piece.symbol {
+func (b *Board) GeneratePiecePseudoLegalMoves(piece Piece) ([]Move, error) {
+	if b.Symbol(piece.position) != piece.symbol {
 		return nil, ErrPieceNotFound
 	}
-	if board.Color(piece.position) != piece.color {
+	if b.Color(piece.position) != piece.color {
 		return nil, ErrPieceNotFound
 	}
 
 	if piece.symbol == Pawn {
-		return generatePseudoLegalPawnMoves(board, piece)
+		return b.generatePseudoLegalPawnMoves(piece)
 	}
 
-	moves := generatePiecePseudoLegalMoves(board, piece)
+	moves := b.generatePiecePseudoLegalMoves(piece)
 
-	moves = append(moves, generateCastlingMoves(board, piece)...)
+	moves = append(moves, b.generateCastlingMoves(piece)...)
 
 	return moves, nil
 }
 
-func generatePiecePseudoLegalMoves(
-	board *Board,
-	piece Piece,
-) []Move {
+func (b *Board) generatePiecePseudoLegalMoves(piece Piece) []Move {
 	moves := make([]Move, 0, maxMovesByPiece[piece.symbol])
 
 	for _, direction := range pieceDirections[piece.symbol] {
@@ -98,7 +91,7 @@ func generatePiecePseudoLegalMoves(
 		for {
 			nextPos := currentPos + int(direction)
 
-			if board.IsSentinel(nextPos) || board.Color(nextPos) == piece.color {
+			if b.IsSentinel(nextPos) || b.Color(nextPos) == piece.color {
 				break
 			}
 
@@ -108,10 +101,10 @@ func generatePiecePseudoLegalMoves(
 					Symbol:   piece.symbol,
 					From:     piece.position,
 					To:       nextPos,
-					Captured: board.Symbol(nextPos), // 0 if sentinel or empty
+					Captured: b.Symbol(nextPos), // 0 if sentinel or empty
 				})
 
-			if !board.IsEmpty(nextPos) || !isSlidingPiece[piece.symbol] {
+			if !b.IsEmpty(nextPos) || !isSlidingPiece[piece.symbol] {
 				break
 			}
 
@@ -127,12 +120,12 @@ func generatePiecePseudoLegalMoves(
 // - if king is not checked
 // - if king destination is not under attack
 // Generates castling moves if all conditions are met
-func generateCastlingMoves(board *Board, king Piece) []Move {
+func (b *Board) generateCastlingMoves(king Piece) []Move {
 	if king.symbol != King || king.HasMoved() {
 		return nil
 	}
-	pieces := board.Pieces(king.color)
-	if board.isKingUnderAttack(king.color) {
+	pieces := b.Pieces(king.color)
+	if b.isKingUnderAttack(king.color) {
 		return nil
 	}
 
@@ -155,8 +148,8 @@ func generateCastlingMoves(board *Board, king Piece) []Move {
 
 		pathClear := true
 		for nextPos := king.position + int(direction); nextPos != rook.position; nextPos += int(direction) {
-			// error in board setup or irrelevant if sentinel is found
-			if !board.IsEmpty(nextPos) {
+			// error in b setup or irrelevant if sentinel is found
+			if !b.IsEmpty(nextPos) {
 				pathClear = false
 				break
 			}
@@ -167,7 +160,7 @@ func generateCastlingMoves(board *Board, king Piece) []Move {
 		}
 
 		kingNextPos := king.position + int(direction)*2
-		if board.isUnderAttack(kingNextPos, king.color) {
+		if b.isUnderAttack(kingNextPos, king.color) {
 			continue
 		}
 
