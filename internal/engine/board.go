@@ -125,6 +125,15 @@ func (b *Board) Pieces(color Color) []Piece {
 	return b.blackPieces
 }
 
+func (b *Board) Piece(color Color, symbol Symbol, pos int) (Piece, bool) {
+	for _, p := range b.Pieces(color) {
+		if p.symbol == symbol && p.position == pos {
+			return p, true
+		}
+	}
+	return Piece{}, false
+}
+
 func (b *Board) setPieces(color Color, pp []Piece) {
 	if color == White {
 		b.whitePieces = pp
@@ -276,9 +285,11 @@ func (b *Board) GridString() string {
 }
 
 func (b *Board) ApplyMove(m Move) error {
-	if m.Color != b.activeColor {
-		return ErrNotActiveColor
+	err := b.validateMoveToApply(m)
+	if err != nil {
+		return err
 	}
+
 	r := round{
 		Move:            m,
 		PrevDrawCounter: b.drawCounter,
@@ -296,6 +307,28 @@ func (b *Board) ApplyMove(m Move) error {
 	b.boardStateHashMapCount[r.BoardStateHash]++
 
 	b.addRoundToHistory(r)
+	return nil
+}
+
+func (b *Board) validateMoveToApply(m Move) error {
+	if m.Color != b.activeColor {
+		return ErrNotActiveColor
+	}
+	if m.From > len(b.cells)-1 || m.To > len(b.cells)-1 {
+		return ErrOutOfBoard
+	}
+	if b.IsSentinel(m.From) || b.IsSentinel(m.To) {
+		return ErrOutOfBoard
+	}
+	if b.IsEmpty(m.From) {
+		return ErrPieceNotFound
+	}
+	if b.Color(m.From) != m.Color {
+		return ErrPieceNotFound
+	}
+	if b.Symbol(m.From) != m.Symbol {
+		return ErrPieceNotFound
+	}
 	return nil
 }
 

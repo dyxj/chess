@@ -49,7 +49,7 @@ func (b *Board) calculateCastlingBits() uint64 {
 			}
 		}
 
-		moves = append(moves, generateCastlingMoves(b, king)...)
+		moves = append(moves, b.generateCastlingMoves(king)...)
 	}
 
 	bits := uint64(0)
