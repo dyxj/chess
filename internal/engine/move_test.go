@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/dyxj/chess/pkg/randx"
@@ -52,6 +54,35 @@ func TestGeneratePseudoLegalMovesErrors(t *testing.T) {
 	}
 }
 
+func TestMoveMethods(t *testing.T) {
+	m := Move{
+		Color:       randx.FromSlice(Colors),
+		Symbol:      randx.FromSlice(Symbols),
+		From:        rand.IntN(boardSize),
+		To:          rand.IntN(boardSize),
+		IsCastling:  randx.Bool(),
+		RookFrom:    rand.IntN(boardSize),
+		RookTo:      rand.IntN(boardSize),
+		Captured:    randx.FromSlice(Symbols),
+		Promotion:   randx.FromSlice(Symbols),
+		IsEnPassant: randx.Bool(),
+	}
+
+	m2 := Move{}
+
+	assert.Equal(t, true, m.hasCaptured())
+	assert.Equal(t, false, m2.hasCaptured())
+
+	assert.Equal(t, true, m.hasPromotion())
+	assert.Equal(t, false, m2.hasPromotion())
+
+	direction := N
+	if m.Color == Black {
+		direction = S
+	}
+	assert.Equal(t, m.To-int(direction), m.calculateEnPassantCapturedPos())
+}
+
 // generateExpectedMoves generates moves from [from,to] in the given direction.
 // takes first capture and assigns it to last move.
 func generateExpectedMoves(symbol Symbol, color Color, from int, to int, direction Direction, capture ...Symbol) []Move {
@@ -81,4 +112,14 @@ func generateExpectedMoves(symbol Symbol, color Color, from int, to int, directi
 		moves[len(moves)-1].Captured = capture[0]
 	}
 	return moves
+}
+
+func sortMoves(moves []Move) {
+	slices.SortStableFunc(moves, func(a, b Move) int {
+		return moveSortingValue(a) - moveSortingValue(b)
+	})
+}
+
+func moveSortingValue(m Move) int {
+	return int(m.Symbol) * (m.From + m.To)
 }

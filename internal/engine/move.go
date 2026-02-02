@@ -33,9 +33,12 @@ func (b *Board) GenerateLegalMoves(color Color) ([]Move, error) {
 	pieces := b.Pieces(color)
 	for _, piece := range pieces {
 		var err error
-		moves, err = b.GeneratePiecePseudoLegalMoves(piece)
-		// panic used here as it is a programmer error if b and piece list is out of sync
-		panic(err)
+		pieceMoves, err := b.GeneratePiecePseudoLegalMoves(piece)
+		if err != nil {
+			// panic used here as it is a programmer error if b and piece list is out of sync
+			panic(err)
+		}
+		moves = append(moves, pieceMoves...)
 	}
 
 	return b.filterLegalMoves(moves, color), nil
@@ -60,7 +63,6 @@ func (b *Board) filterLegalMoves(moves []Move, color Color) []Move {
 		}
 		b.undoMovePos(m)
 	}
-
 	return moves[:legalCount]
 }
 

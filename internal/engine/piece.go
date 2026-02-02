@@ -48,6 +48,8 @@ const (
 	King   Symbol = 6
 )
 
+var Symbols = []Symbol{Pawn, Knight, Bishop, Rook, Queen, King}
+
 type Piece struct {
 	symbol    Symbol
 	color     Color

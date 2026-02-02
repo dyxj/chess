@@ -199,6 +199,11 @@ func (b *Board) Symbol(pos int) Symbol {
 }
 
 func (b *Board) isKingUnderAttack(color Color) bool {
+	kPos := b.kingPosition(color)
+	// no king on board, for playground boards
+	if kPos == 0 {
+		return false
+	}
 	return b.isUnderAttack(b.kingPosition(color), color)
 }
 
@@ -385,8 +390,9 @@ func (b *Board) undoMovePos(m Move) {
 	b.cells[m.From] = boardSymbolMove(m)
 	if m.hasCaptured() {
 		b.cells[m.To] = boardSymbol(m.Captured, m.Color.Opposite())
+	} else {
+		b.cells[m.To] = EmptyCell
 	}
-	b.cells[m.To] = EmptyCell
 
 	if m.IsCastling {
 		b.cells[m.RookFrom] = boardSymbol(Rook, m.Color)
