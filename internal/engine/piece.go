@@ -155,15 +155,6 @@ var slidingMoversByDirectionCircleIndex = [8][]Symbol{
 	{Queen, Bishop},
 }
 
-func slidingMoversByDirection(direction Direction) []Symbol {
-	for i, v := range directionCircle {
-		if direction == v {
-			return slidingMoversByDirectionCircleIndex[i]
-		}
-	}
-	return nil
-}
-
 func GenerateStartPieces(color Color) []Piece {
 	pp := make([]Piece, 0, 16)
 
