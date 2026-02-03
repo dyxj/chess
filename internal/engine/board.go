@@ -569,14 +569,13 @@ func (b *Board) Is3FoldDraw(hash uint64) bool {
 }
 
 // setDrawCounter
-// 1 : increment
-// 0 : reset
-// Should increment if a pawn has moved or a piece was captured
+// Increments draw counter by 1 if move is not a pawn move and not a capture
 func (b *Board) setDrawCounter(m Move) {
-	if m.Symbol == Pawn || m.Captured != 0 {
-		b.drawCounter++
+	if m.Captured != 0 || m.Symbol == Pawn {
+		b.drawCounter = 0
+		return
 	}
-	b.drawCounter = 0
+	b.drawCounter++
 }
 
 func (b *Board) Is100MoveDraw() bool {
