@@ -75,19 +75,19 @@ func NewPiece(
 	}
 }
 
-func (p Piece) Symbol() Symbol {
+func (p *Piece) Symbol() Symbol {
 	return p.symbol
 }
 
-func (p Piece) Color() Color {
+func (p *Piece) Color() Color {
 	return p.color
 }
 
-func (p Piece) Position() int {
+func (p *Piece) Position() int {
 	return p.position
 }
 
-func (p Piece) HasMoved() bool {
+func (p *Piece) HasMoved() bool {
 	return p.moveCount > 0
 }
 
