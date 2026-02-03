@@ -17,6 +17,22 @@ const (
 	SentinelCell = 7
 )
 
+// look-up table for index to mailbox
+var indexToMailbox = [64]int{
+	21, 22, 23, 24, 25, 26, 27, 28,
+	31, 32, 33, 34, 35, 36, 37, 38,
+	41, 42, 43, 44, 45, 46, 47, 48,
+	51, 52, 53, 54, 55, 56, 57, 58,
+	61, 62, 63, 64, 65, 66, 67, 68,
+	71, 72, 73, 74, 75, 76, 77, 78,
+	81, 82, 83, 84, 85, 86, 87, 88,
+	91, 92, 93, 94, 95, 96, 97, 98,
+}
+
+func IndexToMailbox(cell8x8 int) int {
+	return indexToMailbox[cell8x8]
+}
+
 /*
 Board
 |110. 7|111. 7|112. 7|113. 7|114. 7|115. 7|116. 7|117. 7|118. 7|119. 7|
@@ -275,7 +291,7 @@ func (b *Board) Value(pos int) int {
 	return b.cells[pos]
 }
 
-func (b *Board) GridString() string {
+func (b *Board) GridFull() string {
 	sb := strings.Builder{}
 	for x := boardHeight - 1; x >= 0; x-- {
 		sb.WriteString("|")
@@ -287,6 +303,29 @@ func (b *Board) GridString() string {
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+func (b *Board) Grid() string {
+	sb := strings.Builder{}
+	sb.Grow(208)
+	sb.WriteString("|")
+	for i := len(indexToMailbox) - 1; i >= 0; i-- {
+		v := indexToMailbox[i]
+		sb.WriteString(fmt.Sprintf("%2d|", b.Value(v)))
+		if v%10 == 1 && v != 21 {
+			sb.WriteString("\n|")
+		}
+	}
+	sb.WriteString("\n")
+	return sb.String()
+}
+
+func (b *Board) GridRaw() [64]int {
+	g := [64]int{}
+	for i, v := range indexToMailbox {
+		g[i] = b.Value(v)
+	}
+	return g
 }
 
 func (b *Board) ApplyMove(m Move) error {
