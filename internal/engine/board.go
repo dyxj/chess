@@ -413,14 +413,8 @@ func (b *Board) applyEnPassantMovePos(m Move) {
 
 func (b *Board) undoEnPassantMovePos(m Move) {
 	b.cells[m.From] = boardSymbolMove(m)
-
+	b.cells[m.To] = EmptyCell
 	b.cells[m.calculateEnPassantCapturedPos()] = boardSymbol(Pawn, m.Color.Opposite())
-}
-
-func (b *Board) undoMovesPos(moves []Move) {
-	for i := len(moves) - 1; i >= 0; i-- {
-		b.undoMovePos(moves[i])
-	}
 }
 
 func (b *Board) applyMoveToPieceList(m Move) {
@@ -493,12 +487,14 @@ func (b *Board) undoMovePieceList(m Move) {
 		if hasCaptured {
 			if capturedPiece.symbol != m.Captured {
 				// board out of sync, programmer error
-				panic("graveyard symbol don't match move symbol")
+				panic("last graveyard symbol does not match move symbol")
 			}
 			xpp := b.Pieces(capturedPiece.Color())
 			xpp = append(xpp, capturedPiece)
 
 			b.setPieces(capturedPiece.Color(), xpp)
+		} else {
+			panic("expect piece in graveyard but it is empty")
 		}
 	}
 
