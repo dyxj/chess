@@ -2,19 +2,31 @@ package game
 
 import (
 	"slices"
+	"sync"
 
 	"github.com/dyxj/chess/internal/engine"
 )
 
 type Game struct {
-	b Board
+	mu sync.Mutex
+	b  Board
+
+	end chan struct{}
 }
 
-func NewGame(b Board) *Game {
-	return &Game{b: b}
+func NewGame(
+	b Board,
+) *Game {
+	return &Game{
+		b:   b,
+		end: make(chan struct{}),
+	}
 }
 
 func (g *Game) ApplyMove(m Move) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
 	engineMove, err := g.validateAndConvertMove(m)
 	if err != nil {
 		return err
@@ -54,5 +66,20 @@ func (g *Game) validateAndConvertMove(m Move) (engine.Move, error) {
 }
 
 func (g *Game) UndoLastMove() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
 	return g.b.UndoLastMove()
+}
+
+func (g *Game) ActiveColor() engine.Color {
+	return g.b.ActiveColor()
+}
+
+func (g *Game) GameOver() <-chan struct{} {
+	return g.end
+}
+
+func (g *Game) Render() string {
+	return g.b.Grid()
 }

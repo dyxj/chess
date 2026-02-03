@@ -1,4 +1,7 @@
 # Custom
+game-cli
+!game-cli/
+
 .idea/dataSources.xml
 .idea/copilot*
 

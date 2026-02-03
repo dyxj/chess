@@ -630,6 +630,10 @@ func (b *Board) popGraveyard() (Piece, bool) {
 	return lastPiece, true
 }
 
+func (b *Board) ActiveColor() Color {
+	return b.activeColor
+}
+
 func boardSymbolPiece(p Piece) int {
 	return int(p.symbol) * int(p.color)
 }
