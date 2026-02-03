@@ -7,19 +7,19 @@ import (
 )
 
 // calculateBoardStateHash
-func (b *Board) calculateBoardStateHash(move Move, active Color) uint64 {
+func (b *Board) calculateBoardStateHash(lastMove Move, active Color) uint64 {
 	h := fnv.New64a()
-	hashBytes := make([]byte, len(b.cells)+1)
+	hashBytes := make([]byte, len(b.cells), len(b.cells)+4)
 	// board state
 	for i := 0; i < len(b.cells); i++ {
-		// =ve values wraps around, but it shouldn't be a problem as it is consistent
+		// -ve values wraps around, but it shouldn't be a problem as it is consistent
 		// and clashes are not produced
-		hashBytes[i] = byte(i)
+		hashBytes[i] = byte(b.cells[i])
 	}
 
-	epWest, epEast := b.enPassantPossibleAtPosition(move, active)
+	epWest, epEast := b.enPassantPossibleAtPosition(lastMove, active)
 	hashBytes = append(hashBytes,
-		byte(b.activeColor),
+		byte(active),
 		byte(b.calculateCastlingBits()),
 		byte(epWest),
 		byte(epEast),
@@ -70,8 +70,9 @@ func (b *Board) calculateCastlingBits() uint64 {
 }
 
 func (b *Board) enPassantPossibleAtPosition(lastMove Move, activeColor Color) (west int, east int) {
+	west, east = -1, -1
 	if lastMove.Color == activeColor {
-		return -1, -1
+		return west, east
 	}
 
 	activeColorPawnValue := 1
@@ -82,13 +83,15 @@ func (b *Board) enPassantPossibleAtPosition(lastMove Move, activeColor Color) (w
 	if lastMove.Symbol == Pawn &&
 		// double move
 		mathx.AbsInt(lastMove.To-lastMove.From) == 20 {
-		if b.Value(lastMove.To+1) == activeColorPawnValue {
-			east = lastMove.To + 1
-		}
+
 		if b.Value(lastMove.To-1) == activeColorPawnValue {
 			west = lastMove.To - 1
 		}
+
+		if b.Value(lastMove.To+1) == activeColorPawnValue {
+			east = lastMove.To + 1
+		}
 	}
 
-	return -1, -1
+	return west, east
 }

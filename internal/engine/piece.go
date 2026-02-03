@@ -64,7 +64,7 @@ func NewPiece(
 	hasMoved ...bool,
 ) Piece {
 	moveCount := 0
-	if len(hasMoved) > 0 {
+	if len(hasMoved) > 0 && hasMoved[0] {
 		moveCount = 1
 	}
 	return Piece{
