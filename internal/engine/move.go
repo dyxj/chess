@@ -28,7 +28,13 @@ func (m Move) calculateEnPassantCapturedPos() int {
 	return m.To - int(pawnDirection)
 }
 
-func (b *Board) GenerateLegalMoves(color Color) ([]Move, error) {
+func (b *Board) GenerateLegalMoves(color Color) []Move {
+	return b.FilterLegalMoves(
+		b.GeneratePseudoLegalMoves(color),
+	)
+}
+
+func (b *Board) GeneratePseudoLegalMoves(color Color) []Move {
 	moves := make([]Move, 0, maxMovesAllPieces)
 	pieces := b.Pieces(color)
 	for _, piece := range pieces {
@@ -40,8 +46,7 @@ func (b *Board) GenerateLegalMoves(color Color) ([]Move, error) {
 		}
 		moves = append(moves, pieceMoves...)
 	}
-
-	return b.filterLegalMoves(moves, color), nil
+	return moves
 }
 
 func (b *Board) GeneratePieceLegalMoves(piece Piece) ([]Move, error) {
@@ -50,20 +55,30 @@ func (b *Board) GeneratePieceLegalMoves(piece Piece) ([]Move, error) {
 		return nil, err
 	}
 
-	return b.filterLegalMoves(moves, piece.color), nil
+	return b.FilterLegalMoves(moves), nil
 }
 
-func (b *Board) filterLegalMoves(moves []Move, color Color) []Move {
+func (b *Board) FilterLegalMoves(moves []Move) []Move {
 	legalCount := 0
 	for i, m := range moves {
-		b.applyMovePos(m)
-		if !b.IsCheck(color) {
+		if b.IsLegalMove(m) {
 			moves[legalCount] = moves[i]
 			legalCount++
 		}
-		b.undoMovePos(m)
 	}
 	return moves[:legalCount]
+}
+
+func (b *Board) IsLegalMove(m Move) bool {
+	isLegal := false
+
+	b.applyMovePos(m)
+	if !b.IsCheck(m.Color) {
+		isLegal = true
+	}
+	b.undoMovePos(m)
+
+	return isLegal
 }
 
 func (b *Board) GeneratePiecePseudoLegalMoves(piece Piece) ([]Move, error) {

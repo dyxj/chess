@@ -187,8 +187,7 @@ func TestGenerateLegalMoves(t *testing.T) {
 				append(tc.otherPieces(), tPiece),
 			)
 			assert.NoError(t, err)
-			moves, err := board.GenerateLegalMoves(color)
-			assert.NoError(t, err)
+			moves := board.GenerateLegalMoves(color)
 
 			expect := tc.expect()
 			sortMoves(expect)
@@ -211,6 +210,6 @@ func TestGenerateLegalMovesErrors(t *testing.T) {
 	board.cells[54] = EmptyCell
 
 	assert.PanicsWithError(t, ErrPieceNotFound.Error(), func() {
-		_, _ = board.GenerateLegalMoves(c)
+		_ = board.GenerateLegalMoves(c)
 	})
 }

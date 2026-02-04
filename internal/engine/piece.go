@@ -155,8 +155,17 @@ var slidingMoversByDirectionCircleIndex = [8][]Symbol{
 	{Queen, Bishop},
 }
 
+// GenerateStartPieces generates standard starting pieces.
+// Order in which pieces are added helps to calculate game state quicker
 func GenerateStartPieces(color Color) []Piece {
 	pp := make([]Piece, 0, 16)
+
+	powerPieceBase := 20
+	if color == Black {
+		powerPieceBase = 90
+	}
+
+	pp = append(pp, NewPiece(King, color, powerPieceBase+5))
 
 	pawnStart := 31
 	pawnEnd := 38
@@ -169,19 +178,16 @@ func GenerateStartPieces(color Color) []Piece {
 		pp = append(pp, NewPiece(Pawn, color, i))
 	}
 
-	powerPieceBase := 20
-	if color == Black {
-		powerPieceBase = 90
-	}
+	pp = append(pp, NewPiece(Queen, color, powerPieceBase+4))
+
+	pp = append(pp, NewPiece(Knight, color, powerPieceBase+2))
+	pp = append(pp, NewPiece(Knight, color, powerPieceBase+7))
 
 	pp = append(pp, NewPiece(Rook, color, powerPieceBase+1))
 	pp = append(pp, NewPiece(Rook, color, powerPieceBase+8))
-	pp = append(pp, NewPiece(Knight, color, powerPieceBase+2))
-	pp = append(pp, NewPiece(Knight, color, powerPieceBase+7))
+
 	pp = append(pp, NewPiece(Bishop, color, powerPieceBase+3))
 	pp = append(pp, NewPiece(Bishop, color, powerPieceBase+6))
-	pp = append(pp, NewPiece(Queen, color, powerPieceBase+4))
-	pp = append(pp, NewPiece(King, color, powerPieceBase+5))
 
 	return pp
 }
