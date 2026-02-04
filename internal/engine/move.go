@@ -30,11 +30,11 @@ func (m Move) calculateEnPassantCapturedPos() int {
 
 func (b *Board) GenerateLegalMoves(color Color) []Move {
 	return b.FilterLegalMoves(
-		b.GeneratePseudoLegalMoves(color),
+		b.generatePseudoLegalMoves(color),
 	)
 }
 
-func (b *Board) GeneratePseudoLegalMoves(color Color) []Move {
+func (b *Board) generatePseudoLegalMoves(color Color) []Move {
 	moves := make([]Move, 0, maxMovesAllPieces)
 	pieces := b.Pieces(color)
 	for _, piece := range pieces {
@@ -49,6 +49,27 @@ func (b *Board) GeneratePseudoLegalMoves(color Color) []Move {
 	return moves
 }
 
+// HasLegalMoves optimize version to check if legal moves are available.
+// Quick exit upon finding first legal move
+// Usually used to calculate game state
+func (b *Board) HasLegalMoves(color Color) bool {
+	pp := b.Pieces(color)
+	for _, p := range pp {
+		moves, err := b.GeneratePiecePseudoLegalMoves(p)
+		if err != nil {
+			// panic used here as it is a programmer error if b and piece list is out of sync
+			panic(err)
+		}
+		for _, m := range moves {
+			if b.isLegalMove(m) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (b *Board) GeneratePieceLegalMoves(piece Piece) ([]Move, error) {
 	moves, err := b.GeneratePiecePseudoLegalMoves(piece)
 	if err != nil {
@@ -61,7 +82,7 @@ func (b *Board) GeneratePieceLegalMoves(piece Piece) ([]Move, error) {
 func (b *Board) FilterLegalMoves(moves []Move) []Move {
 	legalCount := 0
 	for i, m := range moves {
-		if b.IsLegalMove(m) {
+		if b.isLegalMove(m) {
 			moves[legalCount] = moves[i]
 			legalCount++
 		}
@@ -69,7 +90,7 @@ func (b *Board) FilterLegalMoves(moves []Move) []Move {
 	return moves[:legalCount]
 }
 
-func (b *Board) IsLegalMove(m Move) bool {
+func (b *Board) isLegalMove(m Move) bool {
 	isLegal := false
 
 	b.applyMovePos(m)

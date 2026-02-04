@@ -8,18 +8,16 @@ import (
 )
 
 type Game struct {
-	mu sync.Mutex
-	b  Board
-
-	end chan struct{}
+	mu    sync.Mutex
+	b     Board
+	state State
 }
 
 func NewGame(
 	b Board,
 ) *Game {
 	return &Game{
-		b:   b,
-		end: make(chan struct{}),
+		b: b,
 	}
 }
 
@@ -36,6 +34,8 @@ func (g *Game) ApplyMove(m Move) error {
 	if err != nil {
 		return err
 	}
+
+	g.state = g.calculateGameState()
 
 	return nil
 }
@@ -76,10 +76,10 @@ func (g *Game) ActiveColor() engine.Color {
 	return g.b.ActiveColor()
 }
 
-func (g *Game) GameOver() <-chan struct{} {
-	return g.end
-}
-
 func (g *Game) Render() string {
 	return g.b.Grid()
+}
+
+func (g *Game) State() State {
+	return g.state
 }
