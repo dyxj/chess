@@ -214,7 +214,7 @@ func (b *Board) Symbol(pos int) Symbol {
 	return Symbol(-cv)
 }
 
-func (b *Board) isKingUnderAttack(color Color) bool {
+func (b *Board) IsCheck(color Color) bool {
 	kPos := b.kingPosition(color)
 	// no king on board, for playground boards
 	if kPos == 0 {

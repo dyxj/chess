@@ -21,7 +21,7 @@ func TestIsKingUnderAttackByKing(t *testing.T) {
 				err := board.LoadPieces([]Piece{dKing, aKing})
 				assert.NoError(t, err)
 
-				isCheck := board.isKingUnderAttack(defenderColor)
+				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 				assert.Equal(t, true, isCheck)
 			}
@@ -40,7 +40,7 @@ func TestIsKingUnderAttackByKing(t *testing.T) {
 				err := board.LoadPieces([]Piece{dKing, aKing})
 				assert.NoError(t, err)
 
-				isCheck := board.isKingUnderAttack(defenderColor)
+				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 				assert.Equal(t, false, isCheck)
 			}
@@ -91,7 +91,7 @@ func TestIsKingUnderAttackBySliders(t *testing.T) {
 					err := board.LoadPieces([]Piece{dKing, attacker})
 					assert.NoError(t, err)
 
-					isCheck := board.isKingUnderAttack(defenderColor)
+					isCheck := board.IsCheck(defenderColor)
 					assert.NoError(t, err)
 					assert.Equal(t, slices.Contains(tc.successfulAttackingDirection, direction), isCheck)
 				})
@@ -107,7 +107,7 @@ func TestIsKingUnderAttackBySliders(t *testing.T) {
 					err := board.LoadPieces([]Piece{dKing, attacker, blocker})
 					assert.NoError(t, err)
 
-					isCheck := board.isKingUnderAttack(defenderColor)
+					isCheck := board.IsCheck(defenderColor)
 					assert.NoError(t, err)
 					assert.Equal(t, false, isCheck)
 				})
@@ -138,7 +138,7 @@ func TestIsKingUnderAttackByKnight(t *testing.T) {
 				err := board.LoadPieces([]Piece{dKing, attacker})
 				assert.NoError(t, err)
 
-				isCheck := board.isKingUnderAttack(defenderColor)
+				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 				assert.Equal(t, true, isCheck)
 			})
@@ -159,7 +159,7 @@ func TestIsKingUnderAttackByKnight(t *testing.T) {
 				err := board.LoadPieces(pieces)
 				assert.NoError(t, err)
 
-				isCheck := board.isKingUnderAttack(defenderColor)
+				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 				assert.Equal(t, true, isCheck)
 			})
@@ -186,7 +186,7 @@ func TestIsKingUnderAttackByPawn(t *testing.T) {
 				err := board.LoadPieces(pieces)
 				assert.NoError(t, err)
 
-				isCheck := board.isKingUnderAttack(defenderColor)
+				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 
 				validAttackDirections := whiteValidAttackDirections

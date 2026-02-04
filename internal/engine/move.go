@@ -57,7 +57,7 @@ func (b *Board) filterLegalMoves(moves []Move, color Color) []Move {
 	legalCount := 0
 	for i, m := range moves {
 		b.applyMovePos(m)
-		if !b.isKingUnderAttack(color) {
+		if !b.IsCheck(color) {
 			moves[legalCount] = moves[i]
 			legalCount++
 		}
@@ -127,7 +127,7 @@ func (b *Board) generateCastlingMoves(king Piece) []Move {
 		return nil
 	}
 	pieces := b.Pieces(king.color)
-	if b.isKingUnderAttack(king.color) {
+	if b.IsCheck(king.color) {
 		return nil
 	}
 
