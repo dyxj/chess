@@ -49,7 +49,7 @@ func (a *Adapter) Run() {
 
 func (a *Adapter) run() {
 	for {
-		a.write(a.g.Render())
+		a.write(a.Render())
 		rawMove := a.requestForNextRawMove()
 		isCheckMate, err := a.processInput(rawMove)
 		if err != nil {
@@ -73,7 +73,7 @@ func (a *Adapter) gameOver() {
 
 func (a *Adapter) processInput(input string) (isCheckMate bool, err error) {
 
-	a.write(fmt.Sprintf("processing %v", input))
+	a.write(fmt.Sprintf("processing %v---\n", input))
 
 	if input == "x" {
 		isCheckMate = true
@@ -109,7 +109,7 @@ func (a *Adapter) initGame() {
 	a.g = game.NewGame(
 		engine.NewBoard(),
 	)
-	a.write(fmt.Sprintf("White: %s | Black: %s", a.whitePlayer.Name, a.blackPlayer.Name))
+	a.write(fmt.Sprintf("\nWhite: %s | Black: %s\n", a.whitePlayer.Name, a.blackPlayer.Name))
 }
 
 func (a *Adapter) write(s string) {

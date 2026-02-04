@@ -76,10 +76,10 @@ func (g *Game) ActiveColor() engine.Color {
 	return g.b.ActiveColor()
 }
 
-func (g *Game) Render() string {
-	return g.b.Grid()
-}
-
 func (g *Game) State() State {
 	return g.state
+}
+
+func (g *Game) GridRaw() [64]int {
+	return g.b.GridRaw()
 }
