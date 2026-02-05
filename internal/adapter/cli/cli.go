@@ -42,6 +42,7 @@ func (a *Adapter) Run() {
 		ID:   uuid.New(),
 		Name: bName,
 	})
+	a.write("\n")
 	a.initGame()
 
 	a.run()
@@ -51,11 +52,12 @@ func (a *Adapter) run() {
 	for {
 		a.write(a.Render())
 		rawMove := a.requestForNextRawMove()
-		isCheckMate, err := a.processInput(rawMove)
+		err := a.processInput(rawMove)
 		if err != nil {
 			a.write(err.Error())
+			continue
 		}
-		if isCheckMate {
+		if a.g.State() != game.InProgress {
 			break
 		}
 	}
@@ -63,23 +65,36 @@ func (a *Adapter) run() {
 	a.gameOver()
 }
 
+const draw = "draw"
+
+func (a *Adapter) processInput(input string) error {
+	if input == draw {
+		err := a.g.ForceDraw()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	err := a.g.ApplyMoveWithFileRank(input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (a *Adapter) writeIntro() {
 	a.write("Welcome to CLI Chess")
 }
 
 func (a *Adapter) gameOver() {
-	a.write("Game Over")
-}
-
-func (a *Adapter) processInput(input string) (isCheckMate bool, err error) {
-
-	a.write(fmt.Sprintf("processing %v---\n", input))
-
-	if input == "x" {
-		isCheckMate = true
+	if a.g.State() == game.Draw || a.g.State() == game.Stalemate {
+		a.write(fmt.Sprintf("Game ended in a %v", a.g.State().String()))
+		return
 	}
 
-	return isCheckMate, nil
+	a.write(fmt.Sprintf("Winner: %v", a.player(a.g.Winner()).Name))
 }
 
 func (a *Adapter) requestForNextRawMove() string {
@@ -105,11 +120,18 @@ func (a *Adapter) activePlayer() Player {
 	return a.blackPlayer
 }
 
+func (a *Adapter) player(c engine.Color) Player {
+	if c == engine.White {
+		return a.whitePlayer
+	}
+	return a.blackPlayer
+}
+
 func (a *Adapter) initGame() {
 	a.g = game.NewGame(
 		engine.NewBoard(),
 	)
-	a.write(fmt.Sprintf("\nWhite: %s | Black: %s\n", a.whitePlayer.Name, a.blackPlayer.Name))
+	a.write(fmt.Sprintf("Move input format:[fromFile][fromRank][toFile][toRank].\nie:a2a3\n\nWhite: %s | Black: %s\n", a.whitePlayer.Name, a.blackPlayer.Name))
 }
 
 func (a *Adapter) write(s string) {

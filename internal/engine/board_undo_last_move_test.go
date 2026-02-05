@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -251,7 +250,6 @@ func TestBoard_UndoLastMove(t *testing.T) {
 			err := board.ApplyMove(m)
 			assert.NoError(t, err)
 			board.popGraveyard()
-			fmt.Println(board.graveyard)
 
 			_ = board.UndoLastMove()
 		})

@@ -2,15 +2,17 @@ package game
 
 import (
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/dyxj/chess/internal/engine"
 )
 
 type Game struct {
-	mu    sync.Mutex
-	b     Board
-	state State
+	mu     sync.Mutex
+	b      Board
+	state  State
+	winner engine.Color
 }
 
 func NewGame(
@@ -82,4 +84,64 @@ func (g *Game) State() State {
 
 func (g *Game) GridRaw() [64]int {
 	return g.b.GridRaw()
+}
+
+// ApplyMoveWithFileRank : format a2a3
+// removes all spaces and converts to Move
+// then calls ApplyMove
+func (g *Game) ApplyMoveWithFileRank(move string) error {
+	move = strings.ReplaceAll(move, " ", "")
+	if len(move) != 4 {
+		return ErrIllegalMove
+	}
+
+	if !g.isValidFile(move[0]) ||
+		!g.isValidRank(move[1]) ||
+		!g.isValidFile(move[2]) ||
+		!g.isValidRank(move[3]) {
+		return ErrIllegalMove
+	}
+
+	fromIndex := g.fileRankToIndex(move[0], move[1])
+	m := Move{
+		Color:  g.b.ActiveColor(),
+		Symbol: g.b.Symbol(engine.IndexToMailbox(fromIndex)),
+		From:   fromIndex,
+		To:     g.fileRankToIndex(move[2], move[3]),
+	}
+
+	return g.ApplyMove(m)
+}
+
+func (g *Game) isValidFile(r byte) bool {
+	return r >= 'a' && r <= 'h'
+}
+
+func (g *Game) isValidRank(f byte) bool {
+	return f >= '1' && f <= '8'
+}
+
+func (g *Game) fileRankToIndex(file, rank byte) int {
+	fileIndex := int(file - 'a') // 'a'-'h' -> 0-7
+	rankIndex := int(rank - '1') // '1'-'8' -> 0-7
+	return rankIndex*8 + fileIndex
+}
+
+func (g *Game) ForceDraw() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.canForceDraw() {
+		g.state = Draw
+		return nil
+	}
+	return ErrNotEligibleToForceDraw
+}
+
+func (g *Game) canForceDraw() bool {
+	return g.b.Is100MoveDraw() || g.b.Is3FoldDraw()
+}
+
+func (g *Game) Winner() engine.Color {
+	return g.winner
 }

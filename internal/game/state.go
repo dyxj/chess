@@ -9,6 +9,21 @@ const (
 	Draw
 )
 
+func (s State) String() string {
+	switch s {
+	case InProgress:
+		return "In Progress"
+	case Checkmate:
+		return "Checkmate"
+	case Stalemate:
+		return "Stalemate"
+	case Draw:
+		return "Draw"
+	default:
+		return "Unknown"
+	}
+}
+
 func (g *Game) calculateGameState() State {
 	activeColor := g.b.ActiveColor()
 
@@ -17,6 +32,7 @@ func (g *Game) calculateGameState() State {
 	}
 
 	if g.b.IsCheck(activeColor) {
+		g.winner = activeColor.Opposite()
 		return Checkmate
 	}
 

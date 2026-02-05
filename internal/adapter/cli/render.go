@@ -8,30 +8,80 @@ import (
 const fileHeader = "    a  b  c  d  e  f  g  h "
 const lineBreak = "\n---------------------------\n"
 
-var rankHeader = []string{"1", "2", "3", "4", "5", "6", "7", "8"}
+var rankHeader = []string{"8", "7", "6", "5", "4", "3", "2", "1"}
 
+// Render returns board representation
+//
+//	---------------------------
+//	8 |-♖|-♘|-♗|-♕|-♔|-♗|-♘|-♖|
+//	---------------------------
+//	7 |-♙|-♙|-♙|-♙|-♙|-♙|-♙|-♙|
+//	---------------------------
+//	6 | ·| ·| ·| ·| ·| ·| ·| ·|
+//	---------------------------
+//	5 | ·| ·| ·| ·| ·| ·| ·| ·|
+//	---------------------------
+//	4 | ·| ·| ·| ·| ·| ·| ·| ·|
+//	---------------------------
+//	3 | ·| ·| ·| ·| ·| ·| ·| ·|
+//	---------------------------
+//	2 | ♟| ♟| ♟| ♟| ♟| ♟| ♟| ♟|
+//	---------------------------
+//	1 | ♜| ♞| ♝| ♛| ♚| ♝| ♞| ♜|
+//	---------------------------
+//		a  b  c  d  e  f  g  h
 func (a *Adapter) Render() string {
 	sb := strings.Builder{}
-	sb.Grow(476)
+	sb.Grow(600)
 
-	sb.WriteString(fileHeader)
 	sb.WriteString(lineBreak)
-
 	b := a.g.GridRaw()
-	x := 0
 	fhIndex := 1
 	sb.WriteString(rankHeader[0] + " |")
-	for i := len(b) - 1; i >= 0; i-- {
-		sb.WriteString(fmt.Sprintf("%2d|", b[i]))
-		if x >= 7 && i > 0 {
-			sb.WriteString(lineBreak)
-			sb.WriteString(fmt.Sprintf("%s |", fileHeader[fhIndex]))
-			x = 0
+	for x := 7; x >= 0; x-- {
+		for y := 0; y < 8; y++ {
+			i := x*8 + y
+			sb.WriteString(fmt.Sprintf("%2s|", renderPiece(b[i])))
+		}
+		sb.WriteString(lineBreak)
+		if fhIndex < 8 {
+			sb.WriteString(fmt.Sprintf("%s |", rankHeader[fhIndex]))
 			fhIndex++
-		} else {
-			x++
 		}
 	}
-	sb.WriteString("\n")
+	sb.WriteString(fileHeader)
 	return sb.String()
+}
+
+func renderPiece(pValue int) string {
+	switch pValue {
+	case -6:
+		return "-♔" // black king
+	case -5:
+		return "-♕" // black queen
+	case -4:
+		return "-♖" // black rook
+	case -3:
+		return "-♗" // black bishop
+	case -2:
+		return "-♘" // black knight
+	case -1:
+		return "-♙" // black pawn
+	case 0:
+		return " ·" // empty
+	case 1:
+		return " ♟" // white pawn
+	case 2:
+		return " ♞" // white knight
+	case 3:
+		return " ♝" // white bishop
+	case 4:
+		return " ♜" // white rook
+	case 5:
+		return " ♛" // white queen
+	case 6:
+		return " ♚" // white king
+	default:
+		return " ?"
+	}
 }

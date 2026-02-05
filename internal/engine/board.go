@@ -595,7 +595,12 @@ func (b *Board) lastMove() (move Move, found bool) {
 	return round.Move, true
 }
 
-func (b *Board) Is3FoldDraw(hash uint64) bool {
+func (b *Board) Is3FoldDraw() bool {
+	move, found := b.lastMove()
+	if !found {
+		return false
+	}
+	hash := b.calculateBoardStateHash(move, b.activeColor)
 	count := b.boardStateHashMapCount[hash]
 	if count >= 3 {
 		return true
