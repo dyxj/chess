@@ -19,7 +19,8 @@ func NewGame(
 	b Board,
 ) *Game {
 	return &Game{
-		b: b,
+		b:     b,
+		state: InProgress,
 	}
 }
 

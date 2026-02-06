@@ -2,6 +2,7 @@ package game
 
 import "github.com/dyxj/chess/internal/engine"
 
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . Board
 type Board interface {
 	ApplyMove(m engine.Move) error
 	UndoLastMove() bool

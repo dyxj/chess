@@ -83,6 +83,54 @@ func TestMoveMethods(t *testing.T) {
 	assert.Equal(t, m.To-int(direction), m.calculateEnPassantCapturedPos())
 }
 
+func TestHasLegalMoves_True(t *testing.T) {
+	b := NewEmptyBoard(Black)
+	err := b.LoadPieces(
+		[]Piece{
+			NewPiece(Rook, White, 91),
+			NewPiece(Rook, White, 81),
+			NewPiece(King, Black, 83),
+		},
+	)
+	assert.NoError(t, err)
+
+	hasLegalMoves := b.HasLegalMoves(b.ActiveColor())
+	assert.True(t, hasLegalMoves)
+}
+
+func TestHasLegalMoves_False(t *testing.T) {
+	b := NewEmptyBoard(Black)
+	err := b.LoadPieces(
+		[]Piece{
+			NewPiece(Rook, White, 91),
+			NewPiece(Rook, White, 81),
+			NewPiece(King, Black, 93),
+		},
+	)
+	assert.NoError(t, err)
+
+	hasLegalMoves := b.HasLegalMoves(b.ActiveColor())
+	assert.False(t, hasLegalMoves)
+}
+
+func TestHasLegalMoves_Panic(t *testing.T) {
+	assert.Panics(t, func() {
+		b := NewEmptyBoard(Black)
+		err := b.LoadPieces(
+			[]Piece{
+				NewPiece(Rook, White, 91),
+				NewPiece(Rook, White, 81),
+				NewPiece(King, Black, 93),
+			},
+		)
+		assert.NoError(t, err)
+
+		b.cells[93] = EmptyCell
+		hasLegalMoves := b.HasLegalMoves(b.ActiveColor())
+		assert.False(t, hasLegalMoves)
+	})
+}
+
 // generateExpectedMoves generates moves from [from,to] in the given direction.
 // takes first capture and assigns it to last move.
 func generateExpectedMoves(symbol Symbol, color Color, from int, to int, direction Direction, capture ...Symbol) []Move {
