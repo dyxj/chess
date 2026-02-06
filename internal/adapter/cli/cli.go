@@ -21,13 +21,35 @@ type Adapter struct {
 	g           *game.Game
 	reader      *bufio.Scanner
 	writer      *bufio.Writer
+	iconMapper  iconMapper
 }
 
-func NewAdapter() *Adapter {
-	return &Adapter{
-		reader: bufio.NewScanner(os.Stdin),
-		writer: bufio.NewWriter(os.Stdout),
+type Option func(*Adapter)
+
+func WithNumberIconMapper() Option {
+	return func(a *Adapter) {
+		a.iconMapper = numberIconMapper
 	}
+}
+
+func WithSymbolIconMapper() Option {
+	return func(a *Adapter) {
+		a.iconMapper = symbolIconMapper
+	}
+}
+
+func NewAdapter(option ...Option) *Adapter {
+	a := &Adapter{
+		reader:     bufio.NewScanner(os.Stdin),
+		writer:     bufio.NewWriter(os.Stdout),
+		iconMapper: symbolIconMapper,
+	}
+
+	for _, opt := range option {
+		opt(a)
+	}
+
+	return a
 }
 
 func (a *Adapter) Run() {

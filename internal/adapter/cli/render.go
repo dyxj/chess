@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -41,7 +42,7 @@ func (a *Adapter) Render() string {
 	for x := 7; x >= 0; x-- {
 		for y := 0; y < 8; y++ {
 			i := x*8 + y
-			sb.WriteString(fmt.Sprintf("%2s|", renderPiece(b[i])))
+			sb.WriteString(fmt.Sprintf("%2s|", a.iconMapper(b[i])))
 		}
 		sb.WriteString(lineBreak)
 		if fhIndex < 8 {
@@ -53,7 +54,13 @@ func (a *Adapter) Render() string {
 	return sb.String()
 }
 
-func renderPiece(pValue int) string {
+type iconMapper func(int) string
+
+func numberIconMapper(pValue int) string {
+	return strconv.Itoa(pValue)
+}
+
+func symbolIconMapper(pValue int) string {
 	switch pValue {
 	case -6:
 		return "-♔" // black king
