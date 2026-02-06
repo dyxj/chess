@@ -13,24 +13,24 @@ var rankHeader = []string{"8", "7", "6", "5", "4", "3", "2", "1"}
 
 // Render returns board representation
 //
-//	---------------------------
-//	8 |-♖|-♘|-♗|-♕|-♔|-♗|-♘|-♖|
-//	---------------------------
-//	7 |-♙|-♙|-♙|-♙|-♙|-♙|-♙|-♙|
-//	---------------------------
-//	6 | ·| ·| ·| ·| ·| ·| ·| ·|
-//	---------------------------
-//	5 | ·| ·| ·| ·| ·| ·| ·| ·|
-//	---------------------------
-//	4 | ·| ·| ·| ·| ·| ·| ·| ·|
-//	---------------------------
-//	3 | ·| ·| ·| ·| ·| ·| ·| ·|
-//	---------------------------
-//	2 | ♟| ♟| ♟| ♟| ♟| ♟| ♟| ♟|
-//	---------------------------
-//	1 | ♜| ♞| ♝| ♛| ♚| ♝| ♞| ♜|
-//	---------------------------
-//		a  b  c  d  e  f  g  h
+// ---------------------------
+// 8 | ♜| ♞| ♝| ♛| ♚| ♝| ♞| ♜|
+// ---------------------------
+// 7 | ♟| ♟| ♟| ♟| ♟| ♟| ♟| ♟|
+// ---------------------------
+// 6 | ·| ·| ·| ·| ·| ·| ·| ·|
+// ---------------------------
+// 5 | ·| ·| ·| ·| ·| ·| ·| ·|
+// ---------------------------
+// 4 | ·| ·| ·| ·| ·| ·| ·| ·|
+// ---------------------------
+// 3 | ·| ·| ·| ·| ·| ·| ·| ·|
+// ---------------------------
+// 2 |-♙|-♙|-♙|-♙|-♙|-♙|-♙|-♙|
+// ---------------------------
+// 1 |-♖|-♘|-♗|-♕|-♔|-♗|-♘|-♖|
+// ---------------------------
+// -   a  b  c  d  e  f  g  h
 func (a *Adapter) Render() string {
 	sb := strings.Builder{}
 	sb.Grow(600)
@@ -63,31 +63,31 @@ func numberIconMapper(pValue int) string {
 func symbolIconMapper(pValue int) string {
 	switch pValue {
 	case -6:
-		return "-♔" // black king
+		return " ♚"
 	case -5:
-		return "-♕" // black queen
+		return " ♛"
 	case -4:
-		return "-♖" // black rook
+		return " ♜"
 	case -3:
-		return "-♗" // black bishop
+		return " ♝"
 	case -2:
-		return "-♘" // black knight
+		return " ♞"
 	case -1:
-		return "-♙" // black pawn
+		return " ♟"
 	case 0:
-		return " ·" // empty
+		return " ·"
 	case 1:
-		return " ♟" // white pawn
+		return "-♙"
 	case 2:
-		return " ♞" // white knight
+		return "-♘"
 	case 3:
-		return " ♝" // white bishop
+		return "-♗"
 	case 4:
-		return " ♜" // white rook
+		return "-♖"
 	case 5:
-		return " ♛" // white queen
+		return "-♕"
 	case 6:
-		return " ♚" // white king
+		return "-♔"
 	default:
 		return " ?"
 	}
