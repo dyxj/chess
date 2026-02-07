@@ -5,23 +5,26 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/dyxj/chess/internal/engine"
 )
 
 type Game struct {
-	mu     sync.Mutex
-	b      Board
-	state  State
-	winner engine.Color
+	mu          sync.Mutex
+	b           Board
+	state       State
+	winner      engine.Color
+	CreatedTime time.Time
 }
 
 func NewGame(
 	b Board,
 ) *Game {
 	return &Game{
-		b:     b,
-		state: InProgress,
+		b:           b,
+		state:       InProgress,
+		CreatedTime: time.Now(),
 	}
 }
 
