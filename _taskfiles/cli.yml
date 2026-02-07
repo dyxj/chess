@@ -1,0 +1,32 @@
+version: '3'
+
+vars:
+  GO_CMD: go
+
+tasks:
+  build:
+    desc: "Build game-cli binary"
+    dir: ./cmd/game-cli
+    cmds:
+      - |
+        {{.GO_CMD}} build -o ../../game-cli
+
+  build-if-needed:
+    desc: "Build game-cli binary only if it doesn't exist"
+    internal: true
+    vars:
+      PREFIX: '{{splitList ":" .TASK | first}}'
+    status:
+      - test -f ./game-cli
+    cmds:
+      - task {{.PREFIX}}:build
+
+  run:
+    desc: "Run game-cli. Build binary if does not exist"
+    deps: [build-if-needed]
+    vars:
+      icon: '{{.icon | default "symbol"}}'
+    cmds:
+      - |
+        ./game-cli \
+        -icon {{.icon}}

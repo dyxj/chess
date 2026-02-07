@@ -1,0 +1,11 @@
+# https://taskfile.dev
+
+version: '3'
+
+includes:
+  cli: ./_taskfiles/cli.yml
+
+tasks:
+  default:
+    cmds:
+      - task -l

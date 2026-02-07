@@ -1,13 +1,15 @@
 # Chess
 
-## CLI version
+## CLI
+To run the game via CLI.
 ```
-cd cmd/game-cli
-go build
-./game-cli
+task cli:run
 ```
-In case chess symbols are not supported on your device, add `-icon number` to command.  
-This uses numbers to represent pieces instead of symbols.
+In case chess symbols are not supported on your device.
+Run
+```shell
+task cli:run icon=number
+```
 
 ```shell
 ---------------------------
@@ -31,7 +33,6 @@ This uses numbers to represent pieces instead of symbols.
 ```
 
 ## To Do
-- Add build scripts
 - server to host multiple games
 - UI, probably with ebitengine
 - game timer
