@@ -94,14 +94,14 @@ func (g *Game) GridRaw() [64]int {
 func (g *Game) ApplyMoveWithFileRank(move string) error {
 	move = strings.ReplaceAll(move, " ", "")
 	if len(move) != 4 {
-		return fmt.Errorf("%w", ErrIllegalMove)
+		return fmt.Errorf("%w: input length is not equal 4", ErrIllegalMove)
 	}
 
 	if !g.isValidFile(move[0]) ||
 		!g.isValidRank(move[1]) ||
 		!g.isValidFile(move[2]) ||
 		!g.isValidRank(move[3]) {
-		return ErrIllegalMove
+		return fmt.Errorf("%w: file or rank is out of range", ErrIllegalMove)
 	}
 
 	fromIndex := g.fileRankToIndex(move[0], move[1])
