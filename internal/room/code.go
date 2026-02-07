@@ -7,7 +7,7 @@ import (
 
 const validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func CodeGenerator() string {
+func generateCode() string {
 	sb := strings.Builder{}
 	for i := 0; i < 6; i++ {
 		// validChars contains only ASCII characters(single byte chars)

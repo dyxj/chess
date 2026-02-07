@@ -7,7 +7,7 @@ import (
 )
 
 func TestCodeGenerator(t *testing.T) {
-	code := CodeGenerator()
+	code := generateCode()
 
 	assert.Len(t, code, 6)
 
