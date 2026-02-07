@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -93,7 +94,7 @@ func (g *Game) GridRaw() [64]int {
 func (g *Game) ApplyMoveWithFileRank(move string) error {
 	move = strings.ReplaceAll(move, " ", "")
 	if len(move) != 4 {
-		return ErrIllegalMove
+		return fmt.Errorf("%w", ErrIllegalMove)
 	}
 
 	if !g.isValidFile(move[0]) ||

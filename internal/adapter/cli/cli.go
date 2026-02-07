@@ -87,13 +87,24 @@ func (a *Adapter) run() {
 	a.gameOver()
 }
 
-const draw = "draw"
+const inputDraw = "draw"
+const inputUndo = "undo"
 
 func (a *Adapter) processInput(input string) error {
-	if input == draw {
+	if input == inputDraw {
 		err := a.g.ForceDraw()
 		if err != nil {
 			return err
+		}
+		return nil
+	}
+
+	if input == inputUndo {
+		hasUndo := a.g.UndoLastMove()
+		if hasUndo {
+			a.write("undo successful")
+		} else {
+			a.write("no moves to undo")
 		}
 		return nil
 	}
