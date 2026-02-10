@@ -79,7 +79,7 @@ func (a *Adapter) run() {
 			a.write(err.Error())
 			continue
 		}
-		if a.g.State() != game.InProgress {
+		if a.g.State() != game.StateInProgress {
 			break
 		}
 	}
@@ -122,7 +122,7 @@ func (a *Adapter) writeIntro() {
 }
 
 func (a *Adapter) gameOver() {
-	if a.g.State() == game.Draw || a.g.State() == game.Stalemate {
+	if a.g.State() == game.StateDraw || a.g.State() == game.StateStalemate {
 		a.write(fmt.Sprintf("Game ended in a %v", a.g.State().String()))
 		return
 	}

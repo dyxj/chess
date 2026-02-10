@@ -44,7 +44,7 @@ func TestApplyMove(t *testing.T) {
 		err := g.ApplyMove(m)
 		assert.NoError(t, err)
 
-		assert.Equal(t, g.state, InProgress)
+		assert.Equal(t, g.state, StateInProgress)
 	})
 
 	t.Run("piece not found", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestApplyMove(t *testing.T) {
 		err := g.ApplyMove(m)
 		assert.ErrorIs(t, err, engine.ErrNotActiveColor)
 
-		assert.Equal(t, g.state, InProgress)
+		assert.Equal(t, g.state, StateInProgress)
 	})
 
 	t.Run("checkmate", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestApplyMove(t *testing.T) {
 
 		err := g.ApplyMove(m)
 		assert.NoError(t, err)
-		assert.Equal(t, g.state, Checkmate)
+		assert.Equal(t, g.state, StateCheckmate)
 	})
 
 	t.Run("stalemate", func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestApplyMove(t *testing.T) {
 
 		err := g.ApplyMove(m)
 		assert.NoError(t, err)
-		assert.Equal(t, g.state, Stalemate)
+		assert.Equal(t, g.state, StateStalemate)
 	})
 }
 
@@ -296,6 +296,6 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		err := g.ApplyMoveWithFileRank("a2a3")
 		assert.NoError(t, err)
 
-		assert.Equal(t, g.state, InProgress)
+		assert.Equal(t, g.state, StateInProgress)
 	})
 }

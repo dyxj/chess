@@ -1,10 +1,29 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
 
-// TODO implement me
+	"github.com/dyxj/chess/internal/room"
+	"go.uber.org/zap"
+)
+
 func (s *Server) buildRouter() http.Handler {
-	return nil
+	mux := http.NewServeMux()
+
+	roomCreateHandler := setupRoomRoutes(s.logger)
+
+	mux.Handle("GET /room/create", roomCreateHandler)
+
+	return mux
+}
+
+func setupRoomRoutes(
+	logger *zap.Logger,
+) *room.CreateHandler {
+	repo := room.NewMemCache()
+	webSocketManager := room.NewWebSocketManager(logger)
+	creatorHandler := room.NewCreateHandler(logger, repo, webSocketManager)
+	return creatorHandler
 }
 
 /*

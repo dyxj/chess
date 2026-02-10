@@ -13,7 +13,7 @@ const cleanupInterval = 12 * time.Hour
 type MemCache struct {
 	mu sync.RWMutex
 	// code: room
-	rooms map[string]Room
+	rooms map[string]Room // TODO I guess better to store pointer now.
 
 	shrinkJobOnce  sync.Once
 	cleanupJobOnce sync.Once
@@ -54,10 +54,10 @@ func (c *MemCache) Update(room Room) error {
 	return nil
 }
 
-func (c *MemCache) Delete(code string) {
+func (c *MemCache) Delete(room Room) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.delete(code)
+	c.delete(room.Code)
 }
 
 func (c *MemCache) delete(code string) {
@@ -101,26 +101,22 @@ func (c *MemCache) cleanupJob() {
 	defer c.mu.Unlock()
 
 	for code, room := range c.rooms {
-		if time.Since(room.CreatedTime) > cleanupInterval {
-
+		if room.Status != StatusInProgress && time.Since(room.CreatedTime) > cleanupInterval {
 			c.delete(code)
-
 		}
 	}
 }
 
 func (c *MemCache) shrinkIfRequired() {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if len(c.rooms) < downsizeThreshold {
 		c.shrink()
 	}
 }
 
 func (c *MemCache) shrink() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	newRooms := make(map[string]Room, len(c.rooms))
 
 	for code, room := range c.rooms {

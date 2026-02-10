@@ -3,21 +3,21 @@ package game
 type State int
 
 const (
-	InProgress State = iota + 1
-	Checkmate
-	Stalemate
-	Draw
+	StateInProgress State = iota + 1
+	StateCheckmate
+	StateStalemate
+	StateDraw
 )
 
 func (s State) String() string {
 	switch s {
-	case InProgress:
+	case StateInProgress:
 		return "In Progress"
-	case Checkmate:
+	case StateCheckmate:
 		return "Checkmate"
-	case Stalemate:
+	case StateStalemate:
 		return "Stalemate"
-	case Draw:
+	case StateDraw:
 		return "Draw"
 	default:
 		return "Unknown"
@@ -28,13 +28,13 @@ func (g *Game) calculateGameState() State {
 	activeColor := g.b.ActiveColor()
 
 	if g.b.HasLegalMoves(activeColor) {
-		return InProgress
+		return StateInProgress
 	}
 
 	if g.b.IsCheck(activeColor) {
 		g.winner = activeColor.Opposite()
-		return Checkmate
+		return StateCheckmate
 	}
 
-	return Stalemate
+	return StateStalemate
 }

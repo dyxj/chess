@@ -23,7 +23,7 @@ func NewGame(
 ) *Game {
 	return &Game{
 		b:           b,
-		state:       InProgress,
+		state:       StateInProgress,
 		CreatedTime: time.Now(),
 	}
 }
@@ -137,7 +137,7 @@ func (g *Game) ForceDraw() error {
 	defer g.mu.Unlock()
 
 	if g.canForceDraw() {
-		g.state = Draw
+		g.state = StateDraw
 		return nil
 	}
 	return ErrNotEligibleToForceDraw
@@ -149,4 +149,8 @@ func (g *Game) canForceDraw() bool {
 
 func (g *Game) Winner() engine.Color {
 	return g.winner
+}
+
+func (g *Game) Symbol(pos int) engine.Symbol {
+	return g.b.Symbol(engine.IndexToMailbox(pos))
 }

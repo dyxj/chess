@@ -1,28 +1,41 @@
 package room
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/internal/game"
 	"github.com/dyxj/chess/pkg/errorx"
 	"github.com/dyxj/chess/pkg/httpx"
+	"github.com/dyxj/chess/pkg/websocketx"
 	"go.uber.org/zap"
 )
 
 const addRoomMaxRetries = 5
 
 type CreateHandler struct {
-	logger *zap.Logger
-	repo   RepoAdd
+	logger    *zap.Logger
+	repo      CreatorRepo
+	wsCreator WebsocketCreator
 }
 
-type RepoAdd interface {
+type CreatorRepo interface {
 	Add(room Room) error
+	Delete(room Room)
 }
+
+type WebsocketCreator interface {
+	OpenWebSocket(
+		key string, w http.ResponseWriter, r *http.Request,
+	) (*websocketx.Publisher, *websocketx.Consumer, error)
+}
+
+const queryKeyPlayerName = "playerName"
+const queryKeyColor = "color"
 
 type CreateRequest struct {
 	PlayerName string `json:"playerName"`
@@ -54,22 +67,23 @@ func (r *CreateRequest) Validate() *errorx.ValidationError {
 	return nil
 }
 
-func NewCreateHandler(logger *zap.Logger, repo RepoAdd) *CreateHandler {
+func NewCreateHandler(
+	logger *zap.Logger,
+	repo CreatorRepo,
+	wsCreator WebsocketCreator,
+) *CreateHandler {
 	return &CreateHandler{
-		logger: logger,
-		repo:   repo,
+		logger:    logger,
+		repo:      repo,
+		wsCreator: wsCreator,
 	}
 }
 
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var cRequest CreateRequest
-	err := json.NewDecoder(r.Body).Decode(&cRequest)
-	if err != nil {
-		h.logger.Warn("failed to decode request", zap.Error(err))
-		httpx.BadRequestResponse("invalid request body",
-			map[string]string{"error": err.Error()},
-			w)
-		return
+	q := r.URL.Query()
+	cRequest := &CreateRequest{
+		PlayerName: q.Get(queryKeyPlayerName),
+		Color:      q.Get(queryKeyColor),
 	}
 
 	vErr := cRequest.Validate()
@@ -79,20 +93,54 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.createRoom(cRequest.PlayerName, color(cRequest.Color))
+	rColor := color(cRequest.Color)
+	room, err := h.createRoom(cRequest.PlayerName, rColor)
 	if err != nil {
 		h.logger.Error("failed to create room", zap.Error(err))
 		httpx.InternalServerErrorResponse("", w)
 		return
 	}
 
-	// TODO, upgrade to websocket
+	rKey := room.connectionKey(rColor)
+	publisher, consumer, err := h.wsCreator.OpenWebSocket(rKey, w, r)
+	if err != nil {
+		h.logger.Error("failed to establish websocket connection", zap.Error(err))
+		h.repo.Delete(room)
+		httpx.InternalServerErrorResponse("", w)
+		return
+	}
+
+	// everything below here should be moved to a coordinator
+	err = publisher.PublishJson(Event{
+		Status:    StatusWaiting,
+		Message:   "Waiting for player to join",
+		GameState: game.StateInProgress,
+		Move: game.Move{
+			Color:  engine.White,
+			Symbol: engine.Pawn,
+			From:   0,
+			To:     2,
+		},
+	})
+	if err != nil {
+		h.logger.Error("failed to publish event", zap.Error(err))
+	}
+
+	var cErr error
+	for cErr == nil {
+		var action Action
+		cErr = consumer.ConsumeJson(&action)
+		if cErr != nil {
+			continue
+		}
+		h.logger.Info("websocket connection published", zap.Any("action", action))
+	}
 }
 
 func (h *CreateHandler) createRoom(playerName string, color color) (Room, error) {
 
 	room := NewEmptyRoom()
-	room.SetPlayer(color, NewPlayer(playerName))
+	room.setPlayer(color, NewPlayer(playerName))
 
 	retry := 0
 	for {
