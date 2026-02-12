@@ -3,21 +3,29 @@ package room
 import (
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/dyxj/chess/pkg/websocketx"
 	"go.uber.org/zap"
 )
 
 const createRoomMaxRetries = 5
 
 type Coordinator struct {
-	logger *zap.Logger
-	cache  *MemCache
+	logger        *zap.Logger
+	cache         *MemCache
+	wsm           *websocketx.Manager
+	ticketCache   *TicketCache
+	tokenDuration time.Duration
 }
 
-func NewCoordinator(logger *zap.Logger) *Coordinator {
+func NewCoordinator(logger *zap.Logger, tokenDuration time.Duration) *Coordinator {
 	return &Coordinator{
-		logger: logger,
-		cache:  NewMemCache(),
+		logger:        logger,
+		cache:         NewMemCache(),
+		wsm:           websocketx.NewManager(logger),
+		ticketCache:   NewTicketCache(),
+		tokenDuration: tokenDuration,
 	}
 }
 
@@ -46,4 +54,27 @@ func (c *Coordinator) CreateRoom() (*Room, error) {
 		retry++
 		room.Code = generateCode()
 	}
+}
+
+func (c *Coordinator) IssueTicketToken(code string, name string, color color) (string, error) {
+	room, exist := c.cache.Find(code)
+	if !exist {
+		return "", ErrRoomNotFound
+	}
+
+	if room.Status() != StatusWaiting {
+		return "", ErrRoomFull
+	}
+
+	err := room.IncrementTicket()
+	if err != nil {
+		return "", err
+	}
+
+	token := c.ticketCache.GenerateTicket(code, name, string(color), c.tokenDuration)
+	time.AfterFunc(c.tokenDuration, func() {
+		room.DecrementTicket()
+	})
+
+	return token, nil
 }

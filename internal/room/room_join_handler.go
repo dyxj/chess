@@ -2,6 +2,7 @@ package room
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -11,28 +12,68 @@ import (
 )
 
 type JoinHandler struct {
-	logger     *zap.Logger
-	repoFind   RepoFind
-	repoUpdate RepoUpdate
+	logger *zap.Logger
+	joiner Joiner
 }
 
-type RepoFind interface {
-	Find(code string) (*Room, bool)
-}
-
-type RepoUpdate interface {
-	Update(room Room) error
+type Joiner interface {
+	IssueTicketToken(code string, name string, color color) (string, error)
 }
 
 type JoinRequest struct {
-	Code string `json:"code"`
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
-func (r *JoinRequest) Validate() *errorx.ValidationError {
-	errs := make(map[string]string, 2)
+type JoinResponse struct {
+	Token string `json:"token"`
+}
 
-	if len(r.Code) != 6 {
+const pathKeyCode = "code"
+
+func NewJoinHandler(
+	logger *zap.Logger,
+	joiner Joiner,
+) *JoinHandler {
+	return &JoinHandler{
+		logger: logger,
+		joiner: joiner,
+	}
+}
+
+func (h *JoinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() { _ = r.Body.Close() }()
+	code := r.PathValue(pathKeyCode)
+
+	var joinReq JoinRequest
+	err := json.NewDecoder(r.Body).Decode(&joinReq)
+	if err != nil {
+		h.logger.Warn("failed to decode join request", zap.Error(err))
+		httpx.BadRequestResponse("invalid request body",
+			map[string]string{"error": err.Error()},
+			w)
+		return
+	}
+
+	if err := h.validate(code, joinReq); err != nil {
+		h.logger.Warn("invalid join room request", zap.Any("errors", err))
+		httpx.ValidationFailedResponse(err, w)
+		return
+	}
+
+	token, err := h.joiner.IssueTicketToken(code, joinReq.Name, color(joinReq.Color))
+	if err != nil {
+		h.handlerError(err, w)
+		return
+	}
+
+	httpx.JsonResponse(http.StatusOK, JoinResponse{Token: token}, w)
+}
+
+func (h *JoinHandler) validate(code string, r JoinRequest) *errorx.ValidationError {
+	errs := make(map[string]string, 3)
+
+	if len(code) != 6 {
 		errs["code"] = "code length must be 6 characters"
 	}
 
@@ -41,39 +82,28 @@ func (r *JoinRequest) Validate() *errorx.ValidationError {
 		errs["name"] = "name is required"
 	}
 
+	if r.Color != white.String() && r.Color != black.String() {
+		errs["color"] = "color must be either 'white' or 'black'"
+	}
+
 	if len(errs) > 0 {
 		return &errorx.ValidationError{Properties: errs}
 	}
+
 	return nil
 }
 
-func NewJoinHandler(
-	logger *zap.Logger,
-	repoFind RepoFind,
-	repoUpdate RepoUpdate,
-) *JoinHandler {
-	return &JoinHandler{
-		logger:     logger,
-		repoFind:   repoFind,
-		repoUpdate: repoUpdate,
-	}
-}
-
-func (h *JoinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var cRequest CreateRequest
-	err := json.NewDecoder(r.Body).Decode(&cRequest)
-	if err != nil {
-		h.logger.Warn("failed to decode request", zap.Error(err))
-		httpx.BadRequestResponse("invalid request body",
-			map[string]string{"error": err.Error()},
-			w)
+func (h *JoinHandler) handlerError(err error, w http.ResponseWriter) {
+	if errors.Is(err, ErrRoomNotFound) {
+		httpx.NotFoundResponse(w)
 		return
 	}
 
-	vErr := cRequest.Validate()
-	if vErr != nil {
-		h.logger.Warn("validation failed", zap.Error(vErr))
-		httpx.ValidationFailedResponse(vErr, w)
+	if errors.Is(err, ErrRoomFull) {
+		httpx.BadRequestResponse("room is full", nil, w)
 		return
 	}
+
+	h.logger.Error("failed to join room", zap.Error(err))
+	httpx.InternalServerErrorResponse("", w)
 }

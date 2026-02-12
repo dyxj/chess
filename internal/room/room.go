@@ -1,13 +1,13 @@
 package room
 
 import (
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/internal/game"
-	"github.com/dyxj/chess/pkg/websocketx"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 type Type int
@@ -54,7 +54,7 @@ func (s Status) String() string {
 	case StatusWaiting:
 		return "waiting"
 	case StatusInProgress:
-		return "in progress"
+		return "in_progress"
 	case StatusCompleted:
 		return "completed"
 	default:
@@ -63,65 +63,75 @@ func (s Status) String() string {
 }
 
 type Room struct {
-	ID          uuid.UUID
-	Code        string
-	Status      Status
-	Game        *game.Game
-	WhitePlayer Player
-	BlackPlayer Player
-	CreatedTime time.Time
-}
-
-func (r *Room) setPlayer(color color, player Player) {
-	if color == white {
-		r.WhitePlayer = player
-	} else {
-		r.BlackPlayer = player
-	}
-}
-
-func (r *Room) player(color color) Player {
-	if color == white {
-		return r.WhitePlayer
-	}
-	return r.BlackPlayer
-}
-
-func (r *Room) connectionKey(color color) string {
-	return r.ID.String() + ":" + color.String()
+	mu            sync.RWMutex
+	ID            uuid.UUID
+	Code          string
+	status        Status
+	Game          *game.Game
+	Players       []Player //
+	CreatedTime   time.Time
+	ticketsIssued int
 }
 
 func NewEmptyRoom() *Room {
 	return &Room{
-		ID:          uuid.New(),
-		Code:        generateCode(),
-		Game:        game.NewGame(engine.NewBoard()),
-		Status:      StatusInProgress,
-		CreatedTime: time.Now(),
+		ID:            uuid.New(),
+		Code:          generateCode(),
+		Game:          game.NewGame(engine.NewBoard()),
+		status:        StatusWaiting,
+		CreatedTime:   time.Now(),
+		Players:       make([]Player, 0, 2),
+		ticketsIssued: 0,
 	}
 }
 
-type Event struct {
-	Status    Status     `json:"status"`
-	Message   string     `json:"message"`
-	GameState game.State `json:"gameState"`
-	Move      game.Move  `json:"move"`
+func (r *Room) AddPlayer(p Player) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.Players) >= 2 {
+		return ErrRoomFull
+	}
+	r.Players = append(r.Players, p)
+	return nil
 }
 
-type ActionType int
-
-const (
-	ActionTypeMove ActionType = iota
-	ActionTypeDraw
-	ActionTypeResign
-)
-
-type Action struct {
-	Type ActionType `json:"type"`
-	From *int       `json:"from"`
-	To   *int       `json:"to"`
+func (r *Room) RemovePlayer(p Player) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for i, player := range r.Players {
+		if player.ID == p.ID {
+			r.Players = slices.Delete(r.Players, i, i+1)
+			return
+		}
+	}
 }
 
-func NewWebSocketManager(logger *zap.Logger) *websocketx.Manager {
-	return websocketx.NewManager(logger)
+func (r *Room) IncrementTicket() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.ticketsIssued >= 2 {
+		return ErrRoomFull
+	}
+	r.ticketsIssued++
+	return nil
+}
+
+func (r *Room) DecrementTicket() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.ticketsIssued > 0 {
+		r.ticketsIssued--
+	}
+}
+
+func (r *Room) Status() Status {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.status
+}
+
+func (r *Room) SetStatus(s Status) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.status = s
 }

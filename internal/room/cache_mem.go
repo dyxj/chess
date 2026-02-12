@@ -30,7 +30,7 @@ func NewMemCache() *MemCache {
 func (c *MemCache) Add(room *Room) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	room, ok := c.rooms[room.Code]
+	_, ok := c.rooms[room.Code]
 	if ok {
 		return ErrCodeAlreadyExists
 	}

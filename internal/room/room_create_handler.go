@@ -34,6 +34,7 @@ func NewCreateHandler(
 }
 
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() { _ = r.Body.Close() }()
 	room, err := h.creator.CreateRoom()
 	if err != nil {
 		h.logger.Error("failed to create room", zap.Error(err))
@@ -43,7 +44,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp := CreateResponse{
 		Code:        room.Code,
-		Status:      room.Status.String(),
+		Status:      room.Status().String(),
 		CreatedTime: room.CreatedTime,
 	}
 	httpx.JsonResponse(http.StatusOK, resp, w)
