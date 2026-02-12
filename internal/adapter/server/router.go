@@ -12,7 +12,7 @@ func (s *Server) buildRouter() http.Handler {
 
 	roomCreateHandler := setupRoomRoutes(s.logger)
 
-	mux.Handle("GET /room/create", roomCreateHandler)
+	mux.Handle("POST /room/create", roomCreateHandler)
 
 	return mux
 }
@@ -20,9 +20,9 @@ func (s *Server) buildRouter() http.Handler {
 func setupRoomRoutes(
 	logger *zap.Logger,
 ) *room.CreateHandler {
-	repo := room.NewMemCache()
-	webSocketManager := room.NewWebSocketManager(logger)
-	creatorHandler := room.NewCreateHandler(logger, repo, webSocketManager)
+	coordinator := room.NewCoordinator(logger)
+	creatorHandler := room.NewCreateHandler(logger, coordinator)
+
 	return creatorHandler
 }
 

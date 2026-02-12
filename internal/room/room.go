@@ -3,6 +3,7 @@ package room
 import (
 	"time"
 
+	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/internal/game"
 	"github.com/dyxj/chess/pkg/websocketx"
 	"github.com/google/uuid"
@@ -62,13 +63,13 @@ func (s Status) String() string {
 }
 
 type Room struct {
-	ID          uuid.UUID `json:"id"`
-	Code        string    `json:"code"`
-	Status      Status    `json:"status"`
-	GameID      uuid.UUID `json:"gameId"`
-	WhitePlayer Player    `json:"whitePlayer"`
-	BlackPlayer Player    `json:"blackPlayer"`
-	CreatedTime time.Time `json:"createdTime"`
+	ID          uuid.UUID
+	Code        string
+	Status      Status
+	Game        *game.Game
+	WhitePlayer Player
+	BlackPlayer Player
+	CreatedTime time.Time
 }
 
 func (r *Room) setPlayer(color color, player Player) {
@@ -94,6 +95,7 @@ func NewEmptyRoom() *Room {
 	return &Room{
 		ID:          uuid.New(),
 		Code:        generateCode(),
+		Game:        game.NewGame(engine.NewBoard()),
 		Status:      StatusInProgress,
 		CreatedTime: time.Now(),
 	}
