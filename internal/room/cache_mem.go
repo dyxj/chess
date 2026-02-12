@@ -3,6 +3,8 @@ package room
 import (
 	"sync"
 	"time"
+
+	"github.com/dyxj/chess/pkg/safe"
 )
 
 const peakSize = 10_000
@@ -43,17 +45,6 @@ func (c *MemCache) Find(code string) (*Room, bool) {
 	return room, ok
 }
 
-func (c *MemCache) Update(room *Room) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	_, ok := c.rooms[room.Code]
-	if !ok {
-		return ErrRoomNotFound
-	}
-	c.rooms[room.Code] = room
-	return nil
-}
-
 func (c *MemCache) Delete(room *Room) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -67,22 +58,24 @@ func (c *MemCache) delete(code string) {
 func (c *MemCache) StartMaintenanceJobs(stop <-chan struct{}) {
 	c.cleanupJobOnce.Do(func() {
 		ticker := time.NewTicker(cleanupInterval)
-		go func() {
-			for {
-				select {
-				case <-ticker.C:
-					c.cleanupJob()
-				case <-stop:
-					ticker.Stop()
-					return
+		safe.Go(
+			func() {
+				for {
+					select {
+					case <-ticker.C:
+						c.cleanupJob()
+					case <-stop:
+						ticker.Stop()
+						return
+					}
 				}
-			}
-		}()
+			},
+		)
 	})
 
 	c.shrinkJobOnce.Do(func() {
 		ticker := time.NewTicker(downsizeCheckInterval)
-		go func() {
+		safe.Go(func() {
 			for {
 				select {
 				case <-ticker.C:
@@ -92,7 +85,7 @@ func (c *MemCache) StartMaintenanceJobs(stop <-chan struct{}) {
 					return
 				}
 			}
-		}()
+		})
 	})
 }
 
@@ -101,7 +94,7 @@ func (c *MemCache) cleanupJob() {
 	defer c.mu.Unlock()
 
 	for code, room := range c.rooms {
-		if room.Status != StatusInProgress && time.Since(room.CreatedTime) > cleanupInterval {
+		if room.Status() != StatusInProgress && time.Since(room.CreatedTime) > cleanupInterval {
 			c.delete(code)
 		}
 	}

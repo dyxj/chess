@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/dyxj/chess/pkg/safe"
 	"go.uber.org/zap"
 )
 
@@ -66,18 +67,26 @@ func (s *Server) initServer() {
 func (s *Server) Run() <-chan struct{} {
 	s.initServer()
 
-	go func() {
-		s.logger.Info("starting httpServer", zap.String("address", s.httpServer.Addr))
-		err := s.httpServer.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.logger.Error("httpServer failed to listen and serve", zap.Error(err))
-			s.errSig <- struct{}{}
-		}
-		s.logger.Info("httpServer closed")
-		close(s.runDone)
-	}()
+	safe.GoWithLog(
+		func() {
+			s.logger.Info("starting httpServer", zap.String("address", s.httpServer.Addr))
+			err := s.httpServer.ListenAndServe()
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				s.logger.Error("httpServer failed to listen and serve", zap.Error(err))
+				s.errSig <- struct{}{}
+			}
+			s.logger.Info("httpServer closed")
+			close(s.runDone)
+		},
+		s.logger,
+		"panic in httpServer",
+	)
 
-	go s.listenForStopAndOrchestrateShutdown()
+	safe.GoWithLog(
+		s.listenForStopAndOrchestrateShutdown,
+		s.logger,
+		"panic in shutdown orchestration",
+	)
 
 	return s.errSig
 }

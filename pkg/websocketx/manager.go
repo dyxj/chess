@@ -8,6 +8,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/dyxj/chess/pkg/safe"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +26,11 @@ func NewManager(logger *zap.Logger) *Manager {
 		deleteChan: make(chan string, 100), // buffered channel to avoid blocking
 	}
 
-	go m.deleteListener()
+	safe.GoWithLog(
+		m.deleteListener,
+		logger,
+		"panic websocket manager delete listener",
+	)
 
 	return m
 }
