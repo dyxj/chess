@@ -14,6 +14,7 @@ const (
 	CodeEntityNotFound   errorCode = "entity_not_found"
 	CodeDuplicateEntity  errorCode = "duplicate_entity"
 	CodeIdempotencyError errorCode = "idempotency_error"
+	CodeUnauthorized     errorCode = "unauthorized"
 )
 
 func (e errorCode) String() string {

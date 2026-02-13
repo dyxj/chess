@@ -11,23 +11,27 @@ import (
 func (s *Server) buildRouter() http.Handler {
 	mux := http.NewServeMux()
 
-	roomCreateHandler, roomJoinHandler := setupRoomRoutes(s.logger)
+	roomCreateHandler,
+		roomJoinHandler,
+		roomConnectHandler := setupRoomRoutes(s.logger)
 
 	mux.Handle("POST /room", roomCreateHandler)
 	mux.Handle("POST /room/{code}/join", roomJoinHandler)
-	// mux.Handle("GET /room/{id}/connect?ticket", ???)
+	mux.Handle("GET /room/connect", roomConnectHandler)
 
 	return mux
 }
 
 func setupRoomRoutes(
 	logger *zap.Logger,
-) (*room.CreateHandler, *room.JoinHandler) {
+) (*room.CreateHandler, *room.JoinHandler, *room.ConnectHandler) {
 	coordinator := room.NewCoordinator(logger, 30*time.Second)
+
 	creatorHandler := room.NewCreateHandler(logger, coordinator)
 	joinHandler := room.NewJoinHandler(logger, coordinator)
+	connectHandler := room.NewConnectHandler(logger, coordinator)
 
-	return creatorHandler, joinHandler
+	return creatorHandler, joinHandler, connectHandler
 }
 
 /*

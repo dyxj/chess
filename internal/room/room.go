@@ -56,10 +56,12 @@ type Room struct {
 	Code          string
 	status        Status
 	Game          *game.Game
-	WhitePlayer   *Player
-	BlackPlayer   *Player
+	whitePlayer   *Player
+	blackPlayer   *Player
 	CreatedTime   time.Time
 	ticketsIssued int
+	readyChan     chan struct{}
+	readyOnce     sync.Once
 }
 
 func NewEmptyRoom() *Room {
@@ -70,22 +72,30 @@ func NewEmptyRoom() *Room {
 		status:        StatusWaiting,
 		CreatedTime:   time.Now(),
 		ticketsIssued: 0,
+		readyChan:     make(chan struct{}),
 	}
+}
+
+func (r *Room) Player(color engine.Color) *Player {
+	if color == engine.White {
+		return r.whitePlayer
+	}
+	return r.blackPlayer
 }
 
 func (r *Room) SetPlayer(color engine.Color, p *Player) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if color == engine.White {
-		if r.WhitePlayer != nil {
+		if r.whitePlayer != nil {
 			return ErrColorOccupied
 		}
-		r.WhitePlayer = p
+		r.whitePlayer = p
 	} else {
-		if r.BlackPlayer != nil {
+		if r.blackPlayer != nil {
 			return ErrColorOccupied
 		}
-		r.BlackPlayer = p
+		r.blackPlayer = p
 	}
 	return nil
 }
@@ -94,9 +104,9 @@ func (r *Room) RemovePlayer(color engine.Color) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if color == engine.White {
-		r.WhitePlayer = nil
+		r.whitePlayer = nil
 	} else {
-		r.BlackPlayer = nil
+		r.blackPlayer = nil
 	}
 }
 
@@ -128,4 +138,19 @@ func (r *Room) SetStatus(s Status) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.status = s
+}
+
+func (r *Room) HasBothPlayers() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.whitePlayer != nil && r.blackPlayer != nil {
+		return true
+	}
+	return false
+}
+
+func (r *Room) signalReady() {
+	r.readyOnce.Do(func() {
+		close(r.readyChan)
+	})
 }

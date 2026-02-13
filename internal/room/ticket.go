@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"sync"
 	"time"
+
+	"github.com/dyxj/chess/internal/engine"
 )
 
 type PlayerTicket struct {
 	RoomCode string
 	Name     string
-	Color    string
+	Color    engine.Color
 }
 
 type TicketCache struct {
@@ -21,7 +23,12 @@ func NewTicketCache() *TicketCache {
 	return &TicketCache{}
 }
 
-func (c *TicketCache) GenerateTicket(roomCode, name, color string, duration time.Duration) string {
+func (c *TicketCache) GenerateTicket(
+	roomCode string,
+	name string,
+	color engine.Color,
+	duration time.Duration,
+) string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	token := hex.EncodeToString(b)

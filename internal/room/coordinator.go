@@ -3,6 +3,8 @@ package room
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/dyxj/chess/internal/engine"
@@ -18,15 +20,20 @@ type Coordinator struct {
 	wsm           *websocketx.Manager
 	ticketCache   *TicketCache
 	tokenDuration time.Duration
+
+	// [room.code]
+	muRoomPubs     sync.RWMutex
+	roomPublishers map[string]map[engine.Color]*websocketx.Publisher
 }
 
 func NewCoordinator(logger *zap.Logger, tokenDuration time.Duration) *Coordinator {
 	return &Coordinator{
-		logger:        logger,
-		cache:         NewMemCache(),
-		wsm:           websocketx.NewManager(logger),
-		ticketCache:   NewTicketCache(),
-		tokenDuration: tokenDuration,
+		logger:         logger,
+		cache:          NewMemCache(),
+		wsm:            websocketx.NewManager(logger),
+		ticketCache:    NewTicketCache(),
+		tokenDuration:  tokenDuration,
+		roomPublishers: make(map[string]map[engine.Color]*websocketx.Publisher),
 	}
 }
 
@@ -72,10 +79,108 @@ func (c *Coordinator) IssueTicketToken(code string, name string, color engine.Co
 		return "", err
 	}
 
-	token := c.ticketCache.GenerateTicket(code, name, color.String(), c.tokenDuration)
+	token := c.ticketCache.GenerateTicket(code, name, color, c.tokenDuration)
 	time.AfterFunc(c.tokenDuration, func() {
 		room.DecrementTicket()
 	})
 
 	return token, nil
+}
+
+func (c *Coordinator) ConnectWithToken(
+	token string,
+	w http.ResponseWriter,
+	r *http.Request,
+) error {
+	ticket, valid := c.ticketCache.ConsumeTicket(token)
+	if !valid {
+		return ErrInvalidToken
+	}
+
+	room, exist := c.cache.Find(ticket.RoomCode)
+	if !exist {
+		return ErrRoomNotFound
+	}
+
+	if room.Status() != StatusWaiting {
+		return ErrRoomFull
+	}
+
+	p := NewPlayer(ticket.Name)
+	err := room.SetPlayer(ticket.Color, p)
+	if err != nil {
+		return err
+	}
+
+	publisher, consumer, err := c.wsm.OpenWebSocket(p.ID.String(), w, r)
+	if err != nil {
+		room.RemovePlayer(ticket.Color)
+		return err
+	}
+	// TODO defer should disconnect
+
+	c.runLoop(room, ticket.Color, publisher, consumer)
+
+	return nil
+}
+
+func (c *Coordinator) runLoop(
+	room *Room,
+	color engine.Color,
+	pub *websocketx.Publisher,
+	con *websocketx.Consumer,
+) {
+	c.registerPublisher(room.Code, color, pub)
+
+	// todo setup constant consumer
+
+	if room.HasBothPlayers() {
+		room.signalReady()
+	} else {
+		c.publishWaitingForPlayer(pub, color.Opposite())
+	}
+	<-room.readyChan
+
+	// register publisher
+
+}
+
+func (c *Coordinator) publishWaitingForPlayer(
+	p *websocketx.Publisher,
+	emptyColor engine.Color,
+) {
+	e := NewEventMessage(
+		fmt.Sprintf("Waiting for %v player", emptyColor),
+	)
+	err := p.PublishJson(e)
+	if err != nil {
+		c.logger.Error("failed to publish WaitingForPlayer", zap.Error(err))
+	}
+}
+
+func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub *websocketx.Publisher) {
+	c.muRoomPubs.Lock()
+	defer c.muRoomPubs.Unlock()
+
+	pubs, ok := c.roomPublishers[roomCode]
+	if !ok {
+		pubs = make(map[engine.Color]*websocketx.Publisher)
+		c.roomPublishers[roomCode] = pubs
+	}
+	// overwriting existing is expected in case of reconnection
+	pubs[color] = pub
+}
+
+func (c *Coordinator) broadcast(roomCode string) {
+	// todo implement
+	// remember to ensure fairness of delivery, though it does not matter
+}
+
+func (c *Coordinator) consume() {
+	// validate player turn
+	// if not turn publish error message
+
+	// if yes apply move
+	// if fail valid publish error message
+	// if accepted publish RoundResult
 }

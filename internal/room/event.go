@@ -1,24 +1,59 @@
 package room
 
-import "github.com/dyxj/chess/internal/game"
+import "encoding/json"
 
-type Event struct {
-	Status    Status     `json:"status"`
-	Message   string     `json:"message"`
-	GameState game.State `json:"gameState"`
-	Move      game.Move  `json:"move"`
-}
-
-type ActionType int
+type EventType string
 
 const (
-	ActionTypeMove ActionType = iota
-	ActionTypeDraw
-	ActionTypeResign
+	EventTypeMessage EventType = "message"
 )
 
-type Action struct {
-	Type ActionType `json:"type"`
-	From *int       `json:"from"`
-	To   *int       `json:"to"`
+type EventPartial struct {
+	EventType EventType       `json:"type"`
+	Payload   json.RawMessage `json:"payload"`
 }
+
+type Event struct {
+	EventType EventType `json:"type"`
+	Payload   any       `json:"payload"`
+}
+type EventMessagePayload struct {
+	Message string `json:"message"`
+}
+
+func NewEventMessage(message string) Event {
+	return Event{
+		EventType: EventTypeMessage,
+		Payload: EventMessagePayload{
+			Message: message,
+		},
+	}
+}
+
+type ActionType string
+
+type Action struct {
+	Action  ActionType      `json:"type"`
+	Payload json.RawMessage `json:"payload"`
+}
+
+//type Event struct {
+//	Status    Status     `json:"status"`
+//	Message   string     `json:"message"`
+//	GameState game.State `json:"gameState"`
+//	Move      game.Move  `json:"move"`
+//}
+
+//type ActionType int
+//
+//const (
+//	ActionTypeMove ActionType = iota
+//	ActionTypeDraw
+//	ActionTypeResign
+//)
+//
+//type Action struct {
+//	Type ActionType `json:"type"`
+//	From *int       `json:"from"`
+//	To   *int       `json:"to"`
+//}

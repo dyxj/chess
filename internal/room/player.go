@@ -7,8 +7,9 @@ type Player struct {
 	Name string    `json:"name"`
 }
 
-func NewPlayer() Player {
-	return Player{
-		ID: uuid.New(),
+func NewPlayer(name string) *Player {
+	return &Player{
+		ID:   uuid.New(),
+		Name: name,
 	}
 }
