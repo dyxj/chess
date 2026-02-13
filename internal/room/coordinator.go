@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/pkg/websocketx"
 	"go.uber.org/zap"
 )
@@ -56,7 +57,7 @@ func (c *Coordinator) CreateRoom() (*Room, error) {
 	}
 }
 
-func (c *Coordinator) IssueTicketToken(code string, name string, color color) (string, error) {
+func (c *Coordinator) IssueTicketToken(code string, name string, color engine.Color) (string, error) {
 	room, exist := c.cache.Find(code)
 	if !exist {
 		return "", ErrRoomNotFound
@@ -71,7 +72,7 @@ func (c *Coordinator) IssueTicketToken(code string, name string, color color) (s
 		return "", err
 	}
 
-	token := c.ticketCache.GenerateTicket(code, name, string(color), c.tokenDuration)
+	token := c.ticketCache.GenerateTicket(code, name, color.String(), c.tokenDuration)
 	time.AfterFunc(c.tokenDuration, func() {
 		room.DecrementTicket()
 	})

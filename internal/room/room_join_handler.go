@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/pkg/errorx"
 	"github.com/dyxj/chess/pkg/httpx"
 	"go.uber.org/zap"
@@ -17,12 +18,12 @@ type JoinHandler struct {
 }
 
 type Joiner interface {
-	IssueTicketToken(code string, name string, color color) (string, error)
+	IssueTicketToken(code string, name string, color engine.Color) (string, error)
 }
 
 type JoinRequest struct {
-	Name  string `json:"name"`
-	Color string `json:"color"`
+	Name  string       `json:"name"`
+	Color engine.Color `json:"color"`
 }
 
 type JoinResponse struct {
@@ -61,7 +62,7 @@ func (h *JoinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.joiner.IssueTicketToken(code, joinReq.Name, color(joinReq.Color))
+	token, err := h.joiner.IssueTicketToken(code, joinReq.Name, joinReq.Color)
 	if err != nil {
 		h.handlerError(err, w)
 		return
@@ -71,7 +72,7 @@ func (h *JoinHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *JoinHandler) validate(code string, r JoinRequest) *errorx.ValidationError {
-	errs := make(map[string]string, 3)
+	errs := make(map[string]string, 2)
 
 	if len(code) != 6 {
 		errs["code"] = "code length must be 6 characters"
@@ -80,10 +81,6 @@ func (h *JoinHandler) validate(code string, r JoinRequest) *errorx.ValidationErr
 	r.Name = strings.TrimSpace(r.Name)
 	if r.Name == "" {
 		errs["name"] = "name is required"
-	}
-
-	if r.Color != white.String() && r.Color != black.String() {
-		errs["color"] = "color must be either 'white' or 'black'"
 	}
 
 	if len(errs) > 0 {

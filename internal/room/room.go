@@ -30,17 +30,6 @@ func (rt Type) String() string {
 	}
 }
 
-type color string
-
-const (
-	white color = "white"
-	black color = "black"
-)
-
-func (c color) String() string {
-	return string(c)
-}
-
 type Status int
 
 const (
@@ -68,7 +57,7 @@ type Room struct {
 	Code          string
 	status        Status
 	Game          *game.Game
-	Players       []Player //
+	Players       []Player
 	CreatedTime   time.Time
 	ticketsIssued int
 }
