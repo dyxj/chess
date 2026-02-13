@@ -1,7 +1,6 @@
 package room
 
 import (
-	"slices"
 	"sync"
 	"time"
 
@@ -57,7 +56,8 @@ type Room struct {
 	Code          string
 	status        Status
 	Game          *game.Game
-	Players       []Player
+	WhitePlayer   *Player
+	BlackPlayer   *Player
 	CreatedTime   time.Time
 	ticketsIssued int
 }
@@ -69,29 +69,34 @@ func NewEmptyRoom() *Room {
 		Game:          game.NewGame(engine.NewBoard()),
 		status:        StatusWaiting,
 		CreatedTime:   time.Now(),
-		Players:       make([]Player, 0, 2),
 		ticketsIssued: 0,
 	}
 }
 
-func (r *Room) AddPlayer(p Player) error {
+func (r *Room) SetPlayer(color engine.Color, p *Player) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if len(r.Players) >= 2 {
-		return ErrRoomFull
+	if color == engine.White {
+		if r.WhitePlayer != nil {
+			return ErrColorOccupied
+		}
+		r.WhitePlayer = p
+	} else {
+		if r.BlackPlayer != nil {
+			return ErrColorOccupied
+		}
+		r.BlackPlayer = p
 	}
-	r.Players = append(r.Players, p)
 	return nil
 }
 
-func (r *Room) RemovePlayer(p Player) {
+func (r *Room) RemovePlayer(color engine.Color) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for i, player := range r.Players {
-		if player.ID == p.ID {
-			r.Players = slices.Delete(r.Players, i, i+1)
-			return
-		}
+	if color == engine.White {
+		r.WhitePlayer = nil
+	} else {
+		r.BlackPlayer = nil
 	}
 }
 
