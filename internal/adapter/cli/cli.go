@@ -109,7 +109,7 @@ func (a *Adapter) processInput(input string) error {
 		return nil
 	}
 
-	err := a.g.ApplyMoveWithFileRank(input)
+	_, err := a.g.ApplyMoveWithFileRank(input)
 	if err != nil {
 		return err
 	}

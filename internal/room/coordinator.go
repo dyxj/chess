@@ -140,9 +140,6 @@ func (c *Coordinator) runLoop(
 		c.publishWaitingForPlayer(pub, color.Opposite())
 	}
 	<-room.readyChan
-
-	// register publisher
-
 }
 
 func (c *Coordinator) publishWaitingForPlayer(

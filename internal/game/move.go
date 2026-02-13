@@ -1,6 +1,10 @@
 package game
 
-import "github.com/dyxj/chess/internal/engine"
+import (
+	"fmt"
+
+	"github.com/dyxj/chess/internal/engine"
+)
 
 // Move
 // ( 56) ( 57) ( 58) ( 59) ( 60) ( 61) ( 62) ( 63)
@@ -24,4 +28,42 @@ func (m Move) mbTo() int {
 
 func (m Move) mbFrom() int {
 	return engine.IndexToMailbox(m.From)
+}
+
+type MoveResult struct {
+	Color  engine.Color  `json:"color"`
+	Symbol engine.Symbol `json:"symbol"`
+	From   int           `json:"from"`
+	To     int           `json:"to"`
+
+	IsCastling bool `json:"isCastling"`
+	RookFrom   int  `json:"rookFrom"`
+	RookTo     int  `json:"rookTo"`
+
+	Captured    engine.Symbol `json:"captured"`
+	Promotion   engine.Symbol `json:"promotion"`
+	IsEnPassant bool          `json:"isEnPassant"`
+}
+
+func fromEngine(m engine.Move) MoveResult {
+	from := engine.MailboxToIndex(m.From)
+	if from < 0 {
+		panic(fmt.Sprintf("invalid 'from' index: %d", from))
+	}
+	to := engine.MailboxToIndex(m.To)
+	if to < 0 {
+		panic(fmt.Sprintf("invalid 'to' index: %d", to))
+	}
+	return MoveResult{
+		Color:       m.Color,
+		Symbol:      m.Symbol,
+		From:        from,
+		To:          to,
+		IsCastling:  m.IsCastling,
+		RookFrom:    m.RookFrom,
+		RookTo:      m.RookTo,
+		Captured:    m.Captured,
+		Promotion:   m.Promotion,
+		IsEnPassant: m.IsEnPassant,
+	}
 }

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"math/rand/v2"
 	"testing"
 
 	"github.com/dyxj/chess/internal/engine"
@@ -40,8 +41,9 @@ func TestApplyMove(t *testing.T) {
 		// Setup mock expectations for calculateGameState
 		b.EXPECT().ActiveColor().Return(engine.Black) // After white's move
 		b.EXPECT().HasLegalMoves(engine.Black).Return(true)
+		b.EXPECT().MoveCount().Return(rand.IntN(10))
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
 
 		assert.Equal(t, g.state, StateInProgress)
@@ -64,7 +66,7 @@ func TestApplyMove(t *testing.T) {
 		// Mock piece not found
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(engine.Piece{}, false)
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.ErrorIs(t, err, engine.ErrPieceNotFound)
 	})
 
@@ -93,7 +95,7 @@ func TestApplyMove(t *testing.T) {
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.ErrorIs(t, err, ErrIllegalMove)
 	})
 
@@ -125,7 +127,7 @@ func TestApplyMove(t *testing.T) {
 		// Setup mock expectations for ApplyMove
 		b.EXPECT().ApplyMove(engineMove).Return(engine.ErrNotActiveColor)
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.ErrorIs(t, err, engine.ErrNotActiveColor)
 
 		assert.Equal(t, g.state, StateInProgress)
@@ -165,8 +167,9 @@ func TestApplyMove(t *testing.T) {
 		// no moves and checked = checkmate
 		b.EXPECT().HasLegalMoves(engine.Black).Return(false)
 		b.EXPECT().IsCheck(engine.Black).Return(true)
+		b.EXPECT().MoveCount().Return(rand.IntN(10))
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
 		assert.Equal(t, g.state, StateCheckmate)
 	})
@@ -205,8 +208,9 @@ func TestApplyMove(t *testing.T) {
 		// no moves and not checked = stalemate
 		b.EXPECT().HasLegalMoves(engine.Black).Return(false)
 		b.EXPECT().IsCheck(engine.Black).Return(false)
+		b.EXPECT().MoveCount().Return(rand.IntN(10))
 
-		err := g.ApplyMove(m)
+		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
 		assert.Equal(t, g.state, StateStalemate)
 	})
@@ -252,7 +256,7 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
-				err := g.ApplyMoveWithFileRank(tc.input)
+				_, err := g.ApplyMoveWithFileRank(tc.input)
 				assert.ErrorIs(t, err, ErrIllegalMove)
 			})
 		}
@@ -292,8 +296,9 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		// Setup mock expectations for calculateGameState
 		b.EXPECT().ActiveColor().Return(engine.Black) // After white's move
 		b.EXPECT().HasLegalMoves(engine.Black).Return(true)
+		b.EXPECT().MoveCount().Return(rand.IntN(10))
 
-		err := g.ApplyMoveWithFileRank("a2a3")
+		_, err := g.ApplyMoveWithFileRank("a2a3")
 		assert.NoError(t, err)
 
 		assert.Equal(t, g.state, StateInProgress)

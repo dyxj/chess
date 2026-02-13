@@ -153,6 +153,20 @@ func (mr *MockBoardMockRecorder) IsCheck(c any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsCheck", reflect.TypeOf((*MockBoard)(nil).IsCheck), c)
 }
 
+// MoveCount mocks base method.
+func (m *MockBoard) MoveCount() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MoveCount")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// MoveCount indicates an expected call of MoveCount.
+func (mr *MockBoardMockRecorder) MoveCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveCount", reflect.TypeOf((*MockBoard)(nil).MoveCount))
+}
+
 // Piece mocks base method.
 func (m *MockBoard) Piece(c engine.Color, s engine.Symbol, position int) (engine.Piece, bool) {
 	m.ctrl.T.Helper()

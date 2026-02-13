@@ -28,23 +28,27 @@ func NewGame(
 	}
 }
 
-func (g *Game) ApplyMove(m Move) error {
+func (g *Game) ApplyMove(m Move) (RoundResult, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	engineMove, err := g.validateAndConvertMove(m)
 	if err != nil {
-		return err
+		return RoundResult{}, err
 	}
 
 	err = g.b.ApplyMove(engineMove)
 	if err != nil {
-		return err
+		return RoundResult{}, err
 	}
 
 	g.state = g.calculateGameState()
 
-	return nil
+	return RoundResult{
+		Count:      g.b.MoveCount(),
+		MoveResult: fromEngine(engineMove),
+		State:      g.state,
+	}, nil
 }
 
 func (g *Game) validateAndConvertMove(m Move) (engine.Move, error) {
@@ -94,17 +98,17 @@ func (g *Game) GridRaw() [64]int {
 // ApplyMoveWithFileRank : format a2a3
 // removes all spaces and converts to Move
 // then calls ApplyMove
-func (g *Game) ApplyMoveWithFileRank(move string) error {
+func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
 	move = strings.ReplaceAll(move, " ", "")
 	if len(move) != 4 {
-		return fmt.Errorf("%w: input length is not equal 4", ErrIllegalMove)
+		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrIllegalMove)
 	}
 
 	if !g.isValidFile(move[0]) ||
 		!g.isValidRank(move[1]) ||
 		!g.isValidFile(move[2]) ||
 		!g.isValidRank(move[3]) {
-		return fmt.Errorf("%w: file or rank is out of range", ErrIllegalMove)
+		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrIllegalMove)
 	}
 
 	fromIndex := g.fileRankToIndex(move[0], move[1])

@@ -33,6 +33,21 @@ func IndexToMailbox(cell8x8 int) int {
 	return indexToMailbox[cell8x8]
 }
 
+var mailboxToIndex = func() map[int]int {
+	lookup := make(map[int]int, 64)
+	for i, pos := range indexToMailbox {
+		lookup[pos] = i
+	}
+	return lookup
+}()
+
+func MailboxToIndex(cell8x8 int) int {
+	if idx, exists := mailboxToIndex[cell8x8]; exists {
+		return idx
+	}
+	return -1
+}
+
 /*
 Board
 |110. 7|111. 7|112. 7|113. 7|114. 7|115. 7|116. 7|117. 7|118. 7|119. 7|
@@ -638,6 +653,12 @@ func (b *Board) popGraveyard() (Piece, bool) {
 func (b *Board) ActiveColor() Color {
 	return b.activeColor
 }
+
+func (b *Board) MoveCount() int {
+	return len(b.roundHistory)
+}
+
+// helper functions//
 
 func boardSymbolPiece(p Piece) int {
 	return int(p.symbol) * int(p.color)

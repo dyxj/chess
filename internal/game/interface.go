@@ -15,4 +15,5 @@ type Board interface {
 	GridRaw() [64]int
 	Is100MoveDraw() bool
 	Is3FoldDraw() bool
+	MoveCount() int
 }

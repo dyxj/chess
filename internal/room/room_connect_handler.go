@@ -13,7 +13,7 @@ type ConnectHandler struct {
 }
 
 type Connector interface {
-	ConnectWithToken(token string) error
+	ConnectWithToken(token string, w http.ResponseWriter, r *http.Request) error
 }
 
 func NewConnectHandler(
@@ -32,7 +32,7 @@ func (h *ConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	token := q.Get(queryKeyToken)
 
-	err := h.connector.ConnectWithToken(token)
+	err := h.connector.ConnectWithToken(token, w, r)
 	if err != nil {
 		h.handleError(err, w)
 		return
