@@ -135,7 +135,7 @@ func (a *Adapter) requestForNextRawMove() string {
 }
 
 func (a *Adapter) requestForPlayerName(color engine.Color) string {
-	return a.listenToNewInput(fmt.Sprintf("Please enter %s player's name:", color))
+	return a.listenToNewInput(fmt.Sprintf("Please enter %v player's name:", color))
 }
 
 func (a *Adapter) setWhitePlayer(p Player) {
