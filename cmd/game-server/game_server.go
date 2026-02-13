@@ -17,7 +17,9 @@ func main() {
 	// ensures stop function is called on exit to avoid unintended diversion of signals to context
 	defer mainStop()
 
-	logger, err := zap.NewProduction()
+	logCfg := zap.NewProductionConfig()
+	logCfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	logger, err := logCfg.Build()
 	if err != nil {
 		log.Panicf("failed to initialize logger: %v", err)
 	}

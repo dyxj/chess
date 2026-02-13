@@ -44,10 +44,14 @@ func (g *Game) ApplyMove(m Move) (RoundResult, error) {
 
 	g.state = g.calculateGameState()
 
+	mr := fromEngine(engineMove)
+
 	return RoundResult{
-		Count:      g.b.MoveCount(),
-		MoveResult: fromEngine(engineMove),
-		State:      g.state,
+		Count:       g.b.MoveCount(),
+		MoveResult:  &mr,
+		State:       g.state,
+		Grid:        g.GridRaw(),
+		ActiveColor: g.ActiveColor(),
 	}, nil
 }
 
@@ -157,4 +161,21 @@ func (g *Game) Winner() engine.Color {
 
 func (g *Game) Symbol(pos int) engine.Symbol {
 	return g.b.Symbol(engine.IndexToMailbox(pos))
+}
+
+func (g *Game) Round() RoundResult {
+	var mr *MoveResult
+	move, ok := g.b.LastMove()
+	if ok {
+		round := fromEngine(move)
+		mr = &round
+	}
+
+	return RoundResult{
+		Count:       g.b.MoveCount(),
+		MoveResult:  mr,
+		State:       g.state,
+		Grid:        g.GridRaw(),
+		ActiveColor: g.ActiveColor(),
+	}
 }

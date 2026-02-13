@@ -153,6 +153,21 @@ func (mr *MockBoardMockRecorder) IsCheck(c any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsCheck", reflect.TypeOf((*MockBoard)(nil).IsCheck), c)
 }
 
+// LastMove mocks base method.
+func (m *MockBoard) LastMove() (engine.Move, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LastMove")
+	ret0, _ := ret[0].(engine.Move)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// LastMove indicates an expected call of LastMove.
+func (mr *MockBoardMockRecorder) LastMove() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastMove", reflect.TypeOf((*MockBoard)(nil).LastMove))
+}
+
 // MoveCount mocks base method.
 func (m *MockBoard) MoveCount() int {
 	m.ctrl.T.Helper()

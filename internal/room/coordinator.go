@@ -1,13 +1,17 @@
 package room
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/internal/game"
+	"github.com/dyxj/chess/pkg/safe"
 	"github.com/dyxj/chess/pkg/websocketx"
 	"go.uber.org/zap"
 )
@@ -112,15 +116,19 @@ func (c *Coordinator) ConnectWithToken(
 		return err
 	}
 
-	publisher, consumer, err := c.wsm.OpenWebSocket(p.ID.String(), w, r)
+	publisher, consumer, err := c.wsm.Open(p.ID.String(), w, r)
 	if err != nil {
 		room.RemovePlayer(ticket.Color)
 		return err
 	}
-	// TODO defer should disconnect
+	defer c.wsm.CloseNoHandshake(p.ID.String())
 
-	c.runLoop(room, ticket.Color, publisher, consumer)
+	err = c.runLoop(room, ticket.Color, publisher, consumer)
+	if err != nil {
+		return err
+	}
 
+	c.wsm.Close(p.ID.String(), websocket.StatusNormalClosure, "game end")
 	return nil
 }
 
@@ -129,29 +137,38 @@ func (c *Coordinator) runLoop(
 	color engine.Color,
 	pub *websocketx.Publisher,
 	con *websocketx.Consumer,
-) {
+) error {
 	c.registerPublisher(room.Code, color, pub)
-
-	// todo setup constant consumer
+	stopChan := make(chan struct{})
+	c.consumeLoopInBackground(room, con, stopChan, pub)
 
 	if room.HasBothPlayers() {
 		room.signalReady()
 	} else {
-		c.publishWaitingForPlayer(pub, color.Opposite())
+		xColor := color.Opposite()
+		c.publishEventMessage(pub, fmt.Sprintf("Waiting for %v player", xColor))
 	}
 	<-room.readyChan
+
+	c.publishEventRound(pub, room.Game.Round())
+
+	return nil
 }
 
-func (c *Coordinator) publishWaitingForPlayer(
-	p *websocketx.Publisher,
-	emptyColor engine.Color,
-) {
-	e := NewEventMessage(
-		fmt.Sprintf("Waiting for %v player", emptyColor),
-	)
+// TODO error handling
+func (c *Coordinator) publishEventMessage(p *websocketx.Publisher, msg string) {
+	e := NewEventMessage(msg)
 	err := p.PublishJson(e)
 	if err != nil {
 		c.logger.Error("failed to publish WaitingForPlayer", zap.Error(err))
+	}
+}
+
+// TODO error handling
+func (c *Coordinator) publishEventRound(p *websocketx.Publisher, round game.RoundResult) {
+	err := p.PublishJson(round)
+	if err != nil {
+		c.logger.Error("failed to publish RoundResult", zap.Error(err))
 	}
 }
 
@@ -168,16 +185,102 @@ func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub
 	pubs[color] = pub
 }
 
-func (c *Coordinator) broadcast(roomCode string) {
-	// todo implement
-	// remember to ensure fairness of delivery, though it does not matter
+// todo revisit error handling
+func (c *Coordinator) broadcast(roomCode string, event any) {
+	pubs, exist := c.roomPublishers[roomCode]
+	if !exist {
+		return
+	}
+	c.logger.Debug("broadcast", zap.Any("event", event))
+
+	for color, pub := range pubs {
+		// use concurrent publish to provide fairness
+		// though it doesn't matter as much for chess
+		// ranging over map provides random order
+		safe.GoWithLog(
+			func() {
+				err := pub.PublishJson(event)
+				if err != nil {
+					c.logger.Error("failed to broadcast",
+						zap.String("room", roomCode),
+						zap.String("player", pub.Key()),
+						zap.String("color", color.String()),
+						zap.Error(err))
+				}
+			},
+			c.logger, "broadcast panic",
+		)
+	}
 }
 
-func (c *Coordinator) consume() {
-	// validate player turn
-	// if not turn publish error message
+// TODO error here needs to be propagated. In some cases the socket closes, it is crucial to notify parent
+func (c *Coordinator) consumeLoopInBackground(
+	room *Room,
+	con *websocketx.Consumer,
+	stop <-chan struct{},
+	pub *websocketx.Publisher,
+) {
+	safe.GoWithLog(
+		func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					var partial ActionPartial
+					err := con.ConsumeJson(&partial)
+					if err != nil {
+						c.logger.Error("failed to consume", zap.Error(err))
+						return
+					}
 
-	// if yes apply move
-	// if fail valid publish error message
-	// if accepted publish RoundResult
+					switch partial.Type {
+					case ActionTypeMove:
+						err = c.consumeAction(room, partial.Payload, pub)
+						if err != nil {
+							return
+						}
+					}
+				}
+			}
+
+		},
+		c.logger,
+		"consume loop panic",
+	)
+}
+
+func (c *Coordinator) consumeAction(
+	room *Room,
+	data json.RawMessage,
+	pub *websocketx.Publisher,
+) error {
+	var payload ActionMovePayload
+	err := json.Unmarshal(data, &payload)
+	if err != nil {
+		c.wsm.Close(
+			pub.Key(),
+			websocket.StatusInvalidFramePayloadData,
+			"failed to unmarshal action payload",
+		)
+		return err
+	}
+	c.logger.Debug("payload", zap.Any("payload", payload))
+
+	// TODO implement in progress
+	if room.Status() == StatusInProgress {
+
+	}
+
+	if room.Status() == StatusWaiting {
+		c.logger.Debug("discarding input due to waiting state")
+		c.publishEventMessage(pub, fmt.Sprintf("Discarding input as room is not ready"))
+		return nil
+	}
+
+	// Status Completed
+	c.logger.Debug("discarding input due to completed state")
+	c.publishEventMessage(pub, fmt.Sprintf("Discarding input as room is completed"))
+
+	return nil
 }

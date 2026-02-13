@@ -602,7 +602,7 @@ func (b *Board) lastRound() (round, bool) {
 	return b.roundHistory[len(b.roundHistory)-1], true
 }
 
-func (b *Board) lastMove() (move Move, found bool) {
+func (b *Board) LastMove() (move Move, found bool) {
 	round, found := b.lastRound()
 	if !found {
 		return Move{}, false
@@ -611,7 +611,7 @@ func (b *Board) lastMove() (move Move, found bool) {
 }
 
 func (b *Board) Is3FoldDraw() bool {
-	move, found := b.lastMove()
+	move, found := b.LastMove()
 	if !found {
 		return false
 	}

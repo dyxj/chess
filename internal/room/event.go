@@ -1,11 +1,16 @@
 package room
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/dyxj/chess/internal/game"
+)
 
 type EventType string
 
 const (
-	EventTypeMessage EventType = "message"
+	EventTypeMessage     EventType = "message"
+	EventTypeRoundResult EventType = "round"
 )
 
 type EventPartial struct {
@@ -30,30 +35,9 @@ func NewEventMessage(message string) Event {
 	}
 }
 
-type ActionType string
-
-type Action struct {
-	Action  ActionType      `json:"type"`
-	Payload json.RawMessage `json:"payload"`
+func NewEventRound(round game.RoundResult) Event {
+	return Event{
+		EventType: EventTypeRoundResult,
+		Payload:   round,
+	}
 }
-
-//type Event struct {
-//	Status    Status     `json:"status"`
-//	Message   string     `json:"message"`
-//	GameState game.State `json:"gameState"`
-//	Move      game.Move  `json:"move"`
-//}
-
-//type ActionType int
-//
-//const (
-//	ActionTypeMove ActionType = iota
-//	ActionTypeDraw
-//	ActionTypeResign
-//)
-//
-//type Action struct {
-//	Type ActionType `json:"type"`
-//	From *int       `json:"from"`
-//	To   *int       `json:"to"`
-//}

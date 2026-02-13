@@ -35,7 +35,7 @@ func NewManager(logger *zap.Logger) *Manager {
 	return m
 }
 
-func (m *Manager) OpenWebSocket(
+func (m *Manager) Open(
 	key string,
 	w http.ResponseWriter,
 	r *http.Request,
@@ -54,7 +54,41 @@ func (m *Manager) OpenWebSocket(
 
 	m.addConn(key, c)
 
-	return &Publisher{conn: c}, &Consumer{key: key, conn: c, deleteChan: m.deleteChan}, nil
+	return &Publisher{key: key, conn: c}, &Consumer{key: key, conn: c, deleteChan: m.deleteChan}, nil
+}
+
+func (m *Manager) Close(
+	key string,
+	statusCode websocket.StatusCode,
+	reason string,
+) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	conn, exist := m.getConn(key)
+	if !exist {
+		return
+	}
+
+	err := conn.Close(statusCode, reason)
+	m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+
+	delete(m.conns, key)
+}
+
+func (m *Manager) CloseNoHandshake(key string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	conn, exist := m.getConn(key)
+	if !exist {
+		return
+	}
+
+	err := conn.CloseNow()
+	m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+
+	delete(m.conns, key)
 }
 
 func (m *Manager) isKeyExist(key string) bool {
@@ -62,7 +96,7 @@ func (m *Manager) isKeyExist(key string) bool {
 	return ok
 }
 
-func (m *Manager) deleteKey(key string) {
+func (m *Manager) delete(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.conns, key)
@@ -81,12 +115,17 @@ func (m *Manager) getConn(key string) (*websocket.Conn, bool) {
 
 func (m *Manager) deleteListener() {
 	for k := range m.deleteChan {
-		m.deleteKey(k)
+		m.delete(k)
 	}
 }
 
 type Publisher struct {
+	key  string
 	conn *websocket.Conn
+}
+
+func (p *Publisher) Key() string {
+	return p.key
 }
 
 func (p *Publisher) PublishJson(v any) error {
@@ -97,6 +136,10 @@ type Consumer struct {
 	key        string
 	conn       *websocket.Conn
 	deleteChan chan<- string
+}
+
+func (c *Consumer) Key() string {
+	return c.key
 }
 
 func (c *Consumer) ConsumeJson(v any) error {

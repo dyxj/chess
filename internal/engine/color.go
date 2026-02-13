@@ -14,12 +14,12 @@ const (
 
 var Colors = []Color{White, Black}
 
-func (c *Color) Opposite() Color {
-	return *c * -1
+func (c Color) Opposite() Color {
+	return c * -1
 }
 
-func (c *Color) String() string {
-	switch *c {
+func (c Color) String() string {
+	switch c {
 	case White:
 		return colorWhiteStr
 	case Black:
@@ -29,10 +29,11 @@ func (c *Color) String() string {
 	}
 }
 
-func (c *Color) MarshalText() ([]byte, error) {
+func (c Color) MarshalText() ([]byte, error) {
 	return []byte(c.String()), nil
 }
 
+//goland:noinspection GoMixedReceiverTypes
 func (c *Color) UnmarshalText(text []byte) error {
 	str := string(text)
 	switch str {

@@ -6,6 +6,7 @@ import "github.com/dyxj/chess/internal/engine"
 type Board interface {
 	ApplyMove(m engine.Move) error
 	UndoLastMove() bool
+	LastMove() (engine.Move, bool)
 	Piece(c engine.Color, s engine.Symbol, position int) (engine.Piece, bool)
 	Symbol(pos int) engine.Symbol
 	ActiveColor() engine.Color

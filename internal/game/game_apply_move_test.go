@@ -42,6 +42,8 @@ func TestApplyMove(t *testing.T) {
 		b.EXPECT().ActiveColor().Return(engine.Black) // After white's move
 		b.EXPECT().HasLegalMoves(engine.Black).Return(true)
 		b.EXPECT().MoveCount().Return(rand.IntN(10))
+		b.EXPECT().GridRaw().Return([64]int{})
+		b.EXPECT().ActiveColor().Return(engine.Black)
 
 		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
@@ -168,6 +170,8 @@ func TestApplyMove(t *testing.T) {
 		b.EXPECT().HasLegalMoves(engine.Black).Return(false)
 		b.EXPECT().IsCheck(engine.Black).Return(true)
 		b.EXPECT().MoveCount().Return(rand.IntN(10))
+		b.EXPECT().GridRaw().Return([64]int{})
+		b.EXPECT().ActiveColor().Return(engine.Black)
 
 		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
@@ -209,6 +213,8 @@ func TestApplyMove(t *testing.T) {
 		b.EXPECT().HasLegalMoves(engine.Black).Return(false)
 		b.EXPECT().IsCheck(engine.Black).Return(false)
 		b.EXPECT().MoveCount().Return(rand.IntN(10))
+		b.EXPECT().GridRaw().Return([64]int{})
+		b.EXPECT().ActiveColor().Return(engine.Black)
 
 		_, err := g.ApplyMove(m)
 		assert.NoError(t, err)
@@ -297,6 +303,8 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		b.EXPECT().ActiveColor().Return(engine.Black) // After white's move
 		b.EXPECT().HasLegalMoves(engine.Black).Return(true)
 		b.EXPECT().MoveCount().Return(rand.IntN(10))
+		b.EXPECT().GridRaw().Return([64]int{})
+		b.EXPECT().ActiveColor().Return(engine.Black)
 
 		_, err := g.ApplyMoveWithFileRank("a2a3")
 		assert.NoError(t, err)

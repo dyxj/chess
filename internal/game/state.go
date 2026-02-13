@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 type State int
 
 const (
@@ -9,19 +11,49 @@ const (
 	StateDraw
 )
 
+const (
+	stateInProgressStr = "in_progress"
+	stateCheckmateStr  = "checkmate"
+	stateStalemateStr  = "stalemate"
+	stateDrawStr       = "draw"
+	stateUnknownStr    = "unknown"
+)
+
 func (s State) String() string {
 	switch s {
 	case StateInProgress:
-		return "In Progress"
+		return stateInProgressStr
 	case StateCheckmate:
-		return "Checkmate"
+		return stateCheckmateStr
 	case StateStalemate:
-		return "Stalemate"
+		return stateStalemateStr
 	case StateDraw:
-		return "Draw"
+		return stateDrawStr
 	default:
-		return "Unknown"
+		return stateUnknownStr
 	}
+}
+
+func (s State) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *State) UnmarshalText(text []byte) error {
+	str := string(text)
+	switch str {
+	case stateInProgressStr:
+		*s = StateInProgress
+	case stateCheckmateStr:
+		*s = StateCheckmate
+	case stateStalemateStr:
+		*s = StateStalemate
+	case stateDrawStr:
+		*s = StateDraw
+	default:
+		return fmt.Errorf("unknown state: %s valid state(in_progress,checkmate,stalemate,draw)", str)
+	}
+	return nil
 }
 
 func (g *Game) calculateGameState() State {

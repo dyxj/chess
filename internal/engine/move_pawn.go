@@ -118,7 +118,7 @@ func (b *Board) generatePawnPromotionMoves(
 }
 
 func (b *Board) generateEnPassantMovesIfEligible(piece Piece) (Move, bool) {
-	lastMove, found := b.lastMove()
+	lastMove, found := b.LastMove()
 	if !found {
 		return Move{}, false
 	}
