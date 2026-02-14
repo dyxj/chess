@@ -62,6 +62,8 @@ type Room struct {
 	ticketsIssued int
 	readyChan     chan struct{}
 	readyOnce     sync.Once
+	gameOverChan  chan struct{}
+	gameOverOnce  sync.Once
 }
 
 func NewEmptyRoom() *Room {
@@ -73,6 +75,7 @@ func NewEmptyRoom() *Room {
 		CreatedTime:   time.Now(),
 		ticketsIssued: 0,
 		readyChan:     make(chan struct{}),
+		gameOverChan:  make(chan struct{}),
 	}
 }
 
@@ -152,5 +155,11 @@ func (r *Room) HasBothPlayers() bool {
 func (r *Room) signalReady() {
 	r.readyOnce.Do(func() {
 		close(r.readyChan)
+	})
+}
+
+func (r *Room) signalGameOver() {
+	r.gameOverOnce.Do(func() {
+		close(r.gameOverChan)
 	})
 }

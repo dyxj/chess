@@ -102,6 +102,11 @@ func (s *Server) listenForStopAndOrchestrateShutdown() {
 	// Allow time for readiness probe to pick up the change
 	time.Sleep(s.httpConfig.ShutDownReadyDelay())
 
+	// TODO should not operate based on timeout but rather when all timed games
+	//  though some limitations needs to be added to game beforehand
+	//  particular important for timed games
+	//  moving games to storage for migration could work for
+	//  games with no time control
 	shutDownCtx, shutDownCancel := context.WithTimeout(context.Background(), s.httpConfig.ShutDownTimeout())
 	defer shutDownCancel()
 

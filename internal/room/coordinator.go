@@ -128,6 +128,7 @@ func (c *Coordinator) ConnectWithToken(
 		return err
 	}
 
+	// TODO what other clean ups do we need?
 	c.wsm.Close(p.ID.String(), websocket.StatusNormalClosure, "game end")
 	return nil
 }
@@ -154,7 +155,8 @@ func (c *Coordinator) runLoop(
 
 	c.publishEventRound(pub, room.Game.Round())
 
-	c.setupRoundResultBroadcaster(room.Code, roundResultChan)
+	c.consumeRoundResult(room, roundResultChan)
+	close(stopChan)
 
 	return nil
 }
@@ -206,59 +208,42 @@ func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub
 	pubs[color] = pub
 }
 
-func (c *Coordinator) setupRoundResultBroadcaster(roomCode string, roundResultChan <-chan game.RoundResult) {
-	pubs, exist := c.roomPublishers[roomCode]
+func (c *Coordinator) consumeRoundResult(room *Room, roundResultChan <-chan game.RoundResult) {
+	pubs, exist := c.roomPublishers[room.Code]
 	if !exist {
 		return
 	}
 
-	for roundResult := range roundResultChan {
-		for color, pub := range pubs {
-			// use concurrent publish to provide fairness
-			// though it doesn't matter as much for chess
-			// ranging over map provides random order
-			safe.GoWithLog(
-				func() {
-					err := pub.PublishJson(roundResult)
-					if err != nil {
-						c.logger.Error("failed to broadcast",
-							zap.String("room", roomCode),
-							zap.String("player", pub.Key()),
-							zap.String("color", color.String()),
-							zap.Error(err))
-					}
-				},
-				c.logger, "broadcast panic",
-			)
+	for {
+		select {
+		case roundResult := <-roundResultChan:
+			for color, pub := range pubs {
+				// use concurrent publish to provide fairness
+				// though it doesn't matter as much for chess
+				// ranging over map provides random order
+				safe.GoWithLog(
+					func() {
+						err := pub.PublishJson(roundResult)
+						if err != nil {
+							c.logger.Error("failed to broadcast",
+								zap.String("room", room.Code),
+								zap.String("player", pub.Key()),
+								zap.String("color", color.String()),
+								zap.Error(err))
+						}
+					},
+					c.logger, "broadcast panic",
+				)
+			}
+			if roundResult.State.IsGameOver() {
+				room.signalGameOver()
+			}
+		case _, ok := <-room.gameOverChan:
+			if !ok {
+				c.logger.Info("game over", zap.String("room", room.Code))
+				return
+			}
 		}
-	}
-}
-
-// todo revisit error handling
-func (c *Coordinator) broadcast(roomCode string, event any) {
-	pubs, exist := c.roomPublishers[roomCode]
-	if !exist {
-		return
-	}
-	c.logger.Debug("broadcast", zap.Any("event", event))
-
-	for color, pub := range pubs {
-		// use concurrent publish to provide fairness
-		// though it doesn't matter as much for chess
-		// ranging over map provides random order
-		safe.GoWithLog(
-			func() {
-				err := pub.PublishJson(event)
-				if err != nil {
-					c.logger.Error("failed to broadcast",
-						zap.String("room", roomCode),
-						zap.String("player", pub.Key()),
-						zap.String("color", color.String()),
-						zap.Error(err))
-				}
-			},
-			c.logger, "broadcast panic",
-		)
 	}
 }
 
@@ -275,6 +260,7 @@ func (c *Coordinator) consumeLoopInBackground(
 
 	safe.GoWithLog(
 		func() {
+			defer close(roundResultChan)
 			for {
 				select {
 				case <-stop:
@@ -296,7 +282,6 @@ func (c *Coordinator) consumeLoopInBackground(
 					}
 				}
 			}
-
 		},
 		c.logger,
 		"consume loop panic",

@@ -34,6 +34,10 @@ func (s State) String() string {
 	}
 }
 
+func (s State) IsGameOver() bool {
+	return s == StateCheckmate || s == StateStalemate || s == StateDraw
+}
+
 func (s State) MarshalText() ([]byte, error) {
 	return []byte(s.String()), nil
 }

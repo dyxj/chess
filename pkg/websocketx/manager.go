@@ -151,3 +151,5 @@ func (c *Consumer) ConsumeJson(v any) error {
 	}
 	return nil
 }
+
+// TODO context.Background should be replaced with context with timeout
