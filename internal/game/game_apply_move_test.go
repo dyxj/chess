@@ -32,6 +32,7 @@ func TestApplyMove(t *testing.T) {
 		legalMoves := []engine.Move{engineMove}
 
 		// Setup mock expectations for validateAndConvertMove
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
@@ -66,6 +67,7 @@ func TestApplyMove(t *testing.T) {
 		}
 
 		// Mock piece not found
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(engine.Piece{}, false)
 
 		_, err := g.ApplyMove(m)
@@ -94,6 +96,7 @@ func TestApplyMove(t *testing.T) {
 		}
 		legalMoves := []engine.Move{engineMove}
 
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
@@ -123,6 +126,7 @@ func TestApplyMove(t *testing.T) {
 		legalMoves := []engine.Move{engineMove}
 
 		// Setup mock expectations for validateAndConvertMove
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
@@ -157,6 +161,7 @@ func TestApplyMove(t *testing.T) {
 		legalMoves := []engine.Move{engineMove}
 
 		// Setup mock expectations for validateAndConvertMove
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
@@ -200,6 +205,7 @@ func TestApplyMove(t *testing.T) {
 		legalMoves := []engine.Move{engineMove}
 
 		// Setup mock expectations for validateAndConvertMove
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
@@ -293,6 +299,7 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		legalMoves := []engine.Move{engineMove}
 
 		// Setup mock expectations for validateAndConvertMove
+		b.EXPECT().ActiveColor().Return(engine.White)
 		b.EXPECT().Piece(m.Color, m.Symbol, m.mbFrom()).Return(piece, true)
 		b.EXPECT().GeneratePieceLegalMoves(piece).Return(legalMoves, nil)
 
