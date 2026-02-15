@@ -30,10 +30,12 @@ func main() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Server failed to start:", err)
 		}
+		fmt.Println("server closed")
 	}()
 
 	<-mainCtx.Done()
 	fmt.Println("Shutting down server...")
+	mainStop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -42,6 +44,7 @@ func main() {
 		log.Printf("Server shutdown error: %v", err)
 	}
 	fmt.Println("Server stopped")
+	time.Sleep(10 * time.Second)
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +73,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	writeDone := goWrite(conn, msgChan)
 
 	// Wait for connection to close
+	select {
+	case <-connCtx.Done():
+		fmt.Println("Connection context done, closing connection")
+	case <-r.Context().Done():
+		fmt.Println("server closing connection due to server shutdown")
+		connCancel()
+	}
+
 	<-connCtx.Done()
 	fmt.Println("game over")
 	<-writeDone
@@ -84,6 +95,7 @@ func goRead(conn net.Conn, ctx context.Context, cancel context.CancelFunc) chan 
 		for {
 			select {
 			case <-ctx.Done():
+				fmt.Println("exiting go read")
 				return
 			default:
 				fmt.Println("waiting for input")
@@ -140,12 +152,21 @@ func goWrite(conn net.Conn, msgChan <-chan string) chan struct{} {
 	return done
 }
 
+// The first closure message is accepted
 func writeClose(conn net.Conn) {
 	err := wsutil.WriteServerMessage(conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusNormalClosure, "server is shutting down"))
 	if err != nil {
 		// Don't log "use of closed network connection" as it's expected during shutdown
 		if !errors.Is(err, net.ErrClosed) {
 			fmt.Printf("Error writing close message: %v\n", err)
+		}
+	}
+
+	err2 := wsutil.WriteServerMessage(conn, ws.OpClose, ws.NewCloseFrameBody(ws.StatusInvalidFramePayloadData, "server is shutting down"))
+	if err2 != nil {
+		// Don't log "use of closed network connection" as it's expected during shutdown
+		if !errors.Is(err2, net.ErrClosed) {
+			fmt.Printf("Error writing close message: %v\n", err2)
 		}
 	}
 }
