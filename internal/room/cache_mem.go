@@ -94,7 +94,7 @@ func (c *MemCache) cleanupJob() {
 	defer c.mu.Unlock()
 
 	for code, room := range c.rooms {
-		if room.Status() != StatusInProgress && time.Since(room.CreatedTime) > cleanupInterval {
+		if time.Since(room.CreatedTime) > cleanupInterval {
 			c.delete(code)
 		}
 	}

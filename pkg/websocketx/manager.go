@@ -29,7 +29,7 @@ func NewManager(logger *zap.Logger) *Manager {
 	safe.GoWithLog(
 		m.deleteListener,
 		logger,
-		"panic websocket manager delete listener",
+		"panic websocket manager Delete listener",
 	)
 
 	return m
@@ -71,14 +71,33 @@ func (m *Manager) Close(
 	}
 
 	err := conn.Close(statusCode, reason)
-	m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+	if err != nil {
+		m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+	}
 
 	delete(m.conns, key)
+}
+
+func (m *Manager) CloseRead(ctx context.Context, key string) (context.Context, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	conn, exist := m.getConn(key)
+	if !exist {
+		return nil, false
+	}
+
+	ctx = conn.CloseRead(ctx)
+
+	return ctx, true
 }
 
 func (m *Manager) CloseNoHandshake(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.logger.Debug("closing websocket connection CloseNoHandshake", zap.String("player", key))
 
 	conn, exist := m.getConn(key)
 	if !exist {
@@ -86,7 +105,9 @@ func (m *Manager) CloseNoHandshake(key string) {
 	}
 
 	err := conn.CloseNow()
-	m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+	if err != nil {
+		m.logger.Warn("failed to close WebSocket", zap.String("key", key), zap.Error(err))
+	}
 
 	delete(m.conns, key)
 }
@@ -96,7 +117,7 @@ func (m *Manager) isKeyExist(key string) bool {
 	return ok
 }
 
-func (m *Manager) delete(key string) {
+func (m *Manager) Delete(key string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.conns, key)
@@ -115,7 +136,7 @@ func (m *Manager) getConn(key string) (*websocket.Conn, bool) {
 
 func (m *Manager) deleteListener() {
 	for k := range m.deleteChan {
-		m.delete(k)
+		m.Delete(k)
 	}
 }
 
@@ -128,8 +149,8 @@ func (p *Publisher) Key() string {
 	return p.key
 }
 
-func (p *Publisher) PublishJson(v any) error {
-	return wsjson.Write(context.Background(), p.conn, v)
+func (p *Publisher) PublishJson(ctx context.Context, v any) error {
+	return wsjson.Write(ctx, p.conn, v)
 }
 
 type Consumer struct {
@@ -142,8 +163,8 @@ func (c *Consumer) Key() string {
 	return c.key
 }
 
-func (c *Consumer) ConsumeJson(v any) error {
-	err := wsjson.Read(context.Background(), c.conn, v)
+func (c *Consumer) ConsumeJson(ctx context.Context, v any) error {
+	err := wsjson.Read(ctx, c.conn, v)
 	if err != nil {
 		// upon error, connection is closed with status websocket.StatusInvalidFramePayloadData
 		c.deleteChan <- c.key
@@ -151,5 +172,3 @@ func (c *Consumer) ConsumeJson(v any) error {
 	}
 	return nil
 }
-
-// TODO context.Background should be replaced with context with timeout

@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -121,15 +122,20 @@ func (c *Coordinator) ConnectWithToken(
 		room.RemovePlayer(ticket.Color)
 		return err
 	}
-	defer c.wsm.CloseNoHandshake(p.ID.String())
+	defer c.wsm.Delete(p.ID.String())
 
-	err = c.runLoop(room, ticket.Color, publisher, consumer)
-	if err != nil {
-		return err
-	}
+	wsCtx, wsCtxCancel := context.WithCancel(context.Background())
+	defer func() {
+		c.logger.Debug("closing websocket connection", zap.String("player", p.ID.String()))
+		wsCtxCancel()
+		// Client will receive StatusAbnormalClosure(1006) as the context
+		// of the consumer has to be canceled to unblock the process to perform close.
+		// Upon context canceled 1006 is automatically returned by websocket package.
+		c.logger.Debug("closed websocket connection", zap.String("player", p.ID.String()))
+	}()
 
-	// TODO what other clean ups do we need?
-	c.wsm.Close(p.ID.String(), websocket.StatusNormalClosure, "game end")
+	c.runLoop(room, ticket.Color, publisher, consumer, wsCtx)
+
 	return nil
 }
 
@@ -138,27 +144,29 @@ func (c *Coordinator) runLoop(
 	color engine.Color,
 	pub *websocketx.Publisher,
 	con *websocketx.Consumer,
-) error {
+	wsCtx context.Context,
+) {
 	c.registerPublisher(room.Code, color, pub)
+	defer c.unregisterPublisher(room.Code, color)
 
-	stopChan := make(chan struct{})
-	roundResultChan := c.consumeLoopInBackground(room, color, con, stopChan, pub)
+	roundResultChan := c.goConsumeLoop(room, color, con, wsCtx, pub)
 
 	if room.HasBothPlayers() {
 		room.SetStatus(StatusInProgress)
 		room.signalReady()
 	} else {
 		xColor := color.Opposite()
-		c.publishEventMessage(pub, fmt.Sprintf("Waiting for %v player", xColor))
+		c.publishEventMessage(wsCtx, pub, fmt.Sprintf("Waiting for %v player", xColor))
 	}
 	<-room.readyChan
 
-	c.publishEventRound(pub, room.Game.Round())
+	c.publishEventRound(wsCtx, pub, room.Game.Round())
 
-	c.consumeRoundResult(room, roundResultChan)
-	close(stopChan)
+	c.goConsumeRoundResult(room, roundResultChan)
 
-	return nil
+	<-room.gameOverChan
+
+	c.logger.Debug("room finished", zap.String("room", room.Code))
 }
 
 // TODO error handling
@@ -166,9 +174,9 @@ func (c *Coordinator) runLoop(
 //	Which errors should affect the process?
 //	should check websocket.CloseStatus(err)
 //	should check context, publish json currently doesn't provide context (context.Canceled)
-func (c *Coordinator) publishEventMessage(p *websocketx.Publisher, msg string) {
+func (c *Coordinator) publishEventMessage(ctx context.Context, p *websocketx.Publisher, msg string) {
 	e := NewEventMessage(msg)
-	err := p.PublishJson(e)
+	err := p.PublishJson(ctx, e)
 	if err != nil {
 		c.logger.Error("failed to publish WaitingForPlayer", zap.Error(err))
 	}
@@ -179,17 +187,17 @@ func (c *Coordinator) publishEventMessage(p *websocketx.Publisher, msg string) {
 //	Which errors should affect the process?
 //	should check websocket.CloseStatus(err)
 //	should check context, publish json currently doesn't provide context (context.Canceled)
-func (c *Coordinator) publishEventRound(p *websocketx.Publisher, round game.RoundResult) {
-	err := p.PublishJson(round)
+func (c *Coordinator) publishEventRound(ctx context.Context, p *websocketx.Publisher, round game.RoundResult) {
+	err := p.PublishJson(ctx, round)
 	if err != nil {
 		c.logger.Error("failed to publish RoundResult", zap.Error(err))
 	}
 }
 
 // TODO error handling
-func (c *Coordinator) publishEventError(p *websocketx.Publisher, eErr error) {
+func (c *Coordinator) publishEventError(ctx context.Context, p *websocketx.Publisher, eErr error) {
 	e := NewEventError(eErr)
-	err := p.PublishJson(e)
+	err := p.PublishJson(ctx, e)
 	if err != nil {
 		c.logger.Error("failed to publish error event", zap.Any("eErr", eErr), zap.Error(err))
 	}
@@ -208,51 +216,71 @@ func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub
 	pubs[color] = pub
 }
 
-func (c *Coordinator) consumeRoundResult(room *Room, roundResultChan <-chan game.RoundResult) {
+func (c *Coordinator) unregisterPublisher(roomCode string, color engine.Color) {
+	c.muRoomPubs.Lock()
+	defer c.muRoomPubs.Unlock()
+
+	if _, ok := c.roomPublishers[roomCode]; !ok {
+		return
+	}
+	delete(c.roomPublishers[roomCode], color)
+	if len(c.roomPublishers[roomCode]) == 0 {
+		delete(c.roomPublishers, roomCode)
+	}
+}
+
+func (c *Coordinator) goConsumeRoundResult(room *Room, roundResultChan <-chan game.RoundResult) {
 	pubs, exist := c.roomPublishers[room.Code]
 	if !exist {
 		return
 	}
+	totalPubs := len(pubs)
 
-	for {
-		select {
-		case roundResult := <-roundResultChan:
-			for color, pub := range pubs {
-				// use concurrent publish to provide fairness
-				// though it doesn't matter as much for chess
-				// ranging over map provides random order
-				safe.GoWithLog(
-					func() {
-						err := pub.PublishJson(roundResult)
-						if err != nil {
-							c.logger.Error("failed to broadcast",
-								zap.String("room", room.Code),
-								zap.String("player", pub.Key()),
-								zap.String("color", color.String()),
-								zap.Error(err))
-						}
-					},
-					c.logger, "broadcast panic",
-				)
+	safe.GoWithLog(
+		func() {
+			for roundResult := range roundResultChan {
+				wg := &sync.WaitGroup{}
+				wg.Add(totalPubs)
+				for color, pub := range pubs {
+					// use concurrent publish to provide fairness
+					// though it doesn't matter as much for chess
+					// ranging over map provides random order
+					safe.GoWithLog(
+						func() {
+							defer wg.Done()
+							// TODO why did it keep broadcasting same result on publish failure
+							err := pub.PublishJson(context.Background(), roundResult)
+							if err != nil {
+								c.logger.Error("failed to broadcast",
+									zap.String("room", room.Code),
+									zap.String("player", pub.Key()),
+									zap.String("color", color.String()),
+									zap.Error(err))
+							}
+						},
+						c.logger, "broadcast panic",
+					)
+				}
+				wg.Wait()
+				// TODO undo after testing
+				if !roundResult.State.IsGameOver() {
+					room.signalGameOver()
+					return
+				}
 			}
-			if roundResult.State.IsGameOver() {
-				room.signalGameOver()
-			}
-		case _, ok := <-room.gameOverChan:
-			if !ok {
-				c.logger.Info("game over", zap.String("room", room.Code))
-				return
-			}
-		}
-	}
+		},
+		c.logger,
+		"consume round result panic",
+	)
+
 }
 
 // TODO error here needs to be propagated. In some cases the socket closes, it is crucial to notify parent
-func (c *Coordinator) consumeLoopInBackground(
+func (c *Coordinator) goConsumeLoop(
 	room *Room,
 	color engine.Color,
 	con *websocketx.Consumer,
-	stop <-chan struct{},
+	wsCtx context.Context,
 	pub *websocketx.Publisher,
 ) <-chan game.RoundResult {
 
@@ -261,24 +289,30 @@ func (c *Coordinator) consumeLoopInBackground(
 	safe.GoWithLog(
 		func() {
 			defer close(roundResultChan)
+			defer c.logger.Debug("consume loop exited", zap.String("room", room.Code), zap.String("player", pub.Key()))
 			for {
-				select {
-				case <-stop:
-					return
-				default:
-					var partial ActionPartial
-					err := con.ConsumeJson(&partial)
-					if err != nil {
-						c.logger.Error("failed to consume", zap.Error(err))
+				c.logger.Debug("waiting for next message", zap.String("room", room.Code), zap.String("player", pub.Key()))
+				var partial ActionPartial
+				err := con.ConsumeJson(wsCtx, &partial)
+				if err != nil {
+					status := websocket.CloseStatus(err)
+					if status > 0 {
+						c.logger.Info("websocket closed", zap.Any("close status", status))
 						return
 					}
+					if errors.Is(err, context.Canceled) {
+						c.logger.Debug("consume context canceled")
+						return
+					}
+					c.logger.Error("failed to consume", zap.Error(err))
+					return
+				}
 
-					switch partial.Type {
-					case ActionTypeMove:
-						err = c.consumeAction(room, color, partial.Payload, pub, roundResultChan)
-						if err != nil {
-							return
-						}
+				switch partial.Type {
+				case ActionTypeMove:
+					err = c.consumeAction(wsCtx, room, color, partial.Payload, pub, roundResultChan)
+					if err != nil {
+						return
 					}
 				}
 			}
@@ -291,6 +325,7 @@ func (c *Coordinator) consumeLoopInBackground(
 }
 
 func (c *Coordinator) consumeAction(
+	wsCtx context.Context,
 	room *Room,
 	color engine.Color,
 	data json.RawMessage,
@@ -311,23 +346,24 @@ func (c *Coordinator) consumeAction(
 
 	if room.Status() == StatusInProgress {
 		c.logger.Debug("processing move action", zap.Any("payload", payload))
-		return c.processMoveAction(room, color, payload, pub, roundResultChan)
+		return c.processMoveAction(wsCtx, room, color, payload, pub, roundResultChan)
 	}
 
 	if room.Status() == StatusWaiting {
 		c.logger.Debug("discarding input due to waiting state")
-		c.publishEventMessage(pub, fmt.Sprintf("Discarding input as room is not ready"))
+		c.publishEventMessage(wsCtx, pub, fmt.Sprintf("Discarding input as room is not ready"))
 		return nil
 	}
 
 	// Status Completed
 	c.logger.Debug("discarding input due to completed state")
-	c.publishEventMessage(pub, fmt.Sprintf("Discarding input as room is completed"))
+	c.publishEventMessage(wsCtx, pub, fmt.Sprintf("Discarding input as room is completed"))
 
 	return nil
 }
 
 func (c *Coordinator) processMoveAction(
+	wsCtx context.Context,
 	room *Room,
 	color engine.Color,
 	payload ActionMovePayload,
@@ -335,7 +371,7 @@ func (c *Coordinator) processMoveAction(
 	roundResultChan chan<- game.RoundResult,
 ) error {
 	if err := payload.Validate(); err != nil {
-		c.publishEventError(pub, err)
+		c.publishEventError(wsCtx, pub, err)
 		return nil
 	}
 
@@ -343,7 +379,7 @@ func (c *Coordinator) processMoveAction(
 		payload.ToMove(color),
 	)
 	if err != nil {
-		c.publishEventError(pub, err)
+		c.publishEventError(wsCtx, pub, err)
 		return nil
 	}
 
