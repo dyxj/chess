@@ -32,8 +32,10 @@ task cli:run icon=number
     a  b  c  d  e  f  g  h
 ```
 
-## To Do
-- server to host multiple games
-- UI, probably with ebitengine
-- game timer
+## Road Map
+- [x] Engine
+- [x] In person CLI
+- [ ] Online(websockets)
+  - in progress: changing websocket package to `ws` fixes bug of client receiving 1006 when read is interrupted 
+- [ ] Online Client
 
