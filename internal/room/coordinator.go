@@ -193,6 +193,7 @@ func (c *Coordinator) runLoop(
 		case consumeErr, ok := <-consumeErrChan:
 			if !ok {
 				consumeErrChan = nil
+				continue
 			}
 			logger.Debug("exiting run loop, due to consume error")
 			return consumeErr
