@@ -180,7 +180,7 @@ func (c *Coordinator) runLoop(
 		return err
 	}
 
-	err = c.goConsumeRoundResult(room, roundResultChan, logger)
+	err = c.goProcessRoundResults(room, roundResultChan, logger)
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,15 @@ func (c *Coordinator) unregisterPublisher(roomCode string, color engine.Color) {
 	}
 }
 
-func (c *Coordinator) goConsumeRoundResult(
+// goProcessRoundResults listens to roundResultChan.
+// broadcast round results to both players concurrently in random order.
+// If the round result indicates game over, it signals the room and exits.
+//
+// To simplify the current implementation, broadcasting is "best effort" and doesn't return error if failed.
+// Expected errors are websocket close error or network close error.
+// These are already handled by the main loop and caught first by the
+// consumerLoop which listen constantly to the websocket.
+func (c *Coordinator) goProcessRoundResults(
 	room *Room,
 	roundResultChan <-chan game.RoundResult,
 	logger *zap.Logger,
@@ -267,13 +275,13 @@ func (c *Coordinator) goConsumeRoundResult(
 	}
 	totalPubs := len(pubs)
 
-	// TODO here, if publishing fail here something should be returned, same as consume loop
 	go func() {
-		defer safe.RecoverWithLog(logger, "goConsumeRoundResult")
+		defer safe.RecoverWithLog(logger, "goProcessRoundResults")
 
 		for roundResult := range roundResultChan {
 			wg := &sync.WaitGroup{}
 			wg.Add(totalPubs)
+
 			for color, pub := range pubs {
 				// use concurrent publish to provide fairness
 				// though it doesn't matter as much for chess
@@ -283,7 +291,7 @@ func (c *Coordinator) goConsumeRoundResult(
 						zap.String("room", room.Code),
 						zap.String("color", color.String()),
 					)
-					defer safe.RecoverWithLog(lg, "goConsumeRoundResult:broadcast")
+					defer safe.RecoverWithLog(lg, "goProcessRoundResults:broadcast")
 					defer wg.Done()
 
 					err := pub.PublishJson(NewEventRound(roundResult))
