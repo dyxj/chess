@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 
+	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/internal/game"
 )
 
@@ -12,6 +13,7 @@ const (
 	EventTypeMessage     EventType = "message"
 	EventTypeRoundResult EventType = "round"
 	EventTypeError       EventType = "error"
+	EventTypeResign      EventType = "resign"
 )
 
 type EventPartial struct {
@@ -27,16 +29,13 @@ type EventMessagePayload struct {
 	Message string `json:"message"`
 }
 
-type EventErrorCode string
-
-const (
-	EventErrorCodeInvalidMove    EventErrorCode = "invalid_move"
-	EventErrorCodeNotActiveColor EventErrorCode = "not_active_color"
-	EventErrorCodeIllegalMove    EventErrorCode = "illegal_move"
-)
-
 type EventErrorPayload struct {
 	Error string `json:"error"`
+}
+
+type EventResignPayload struct {
+	Resigner engine.Color `json:"resigner"`
+	Winner   engine.Color `json:"winner"`
 }
 
 func NewEventMessage(message string) Event {
@@ -60,6 +59,16 @@ func NewEventError(err error) Event {
 		EventType: EventTypeError,
 		Payload: EventErrorPayload{
 			Error: err.Error(),
+		},
+	}
+}
+
+func NewResignEvent(resigner engine.Color) Event {
+	return Event{
+		EventType: EventTypeResign,
+		Payload: EventResignPayload{
+			Resigner: resigner,
+			Winner:   resigner.Opposite(),
 		},
 	}
 }

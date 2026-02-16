@@ -36,6 +36,7 @@ task cli:run icon=number
 - [x] Engine
 - [x] In person CLI
 - [ ] Online(websockets)
-  - in progress: changing websocket package to `ws` fixes bug of client receiving 1006 when read is interrupted 
+  - in progress:  
 - [ ] Online Client
+- [ ] Reconnect
 

@@ -269,7 +269,7 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				_, err := g.ApplyMoveWithFileRank(tc.input)
-				assert.ErrorIs(t, err, ErrIllegalMove)
+				assert.ErrorIs(t, err, ErrInvalidMove)
 			})
 		}
 	})

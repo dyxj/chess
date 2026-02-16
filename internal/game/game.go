@@ -109,14 +109,14 @@ func (g *Game) GridRaw() [64]int {
 func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
 	move = strings.ReplaceAll(move, " ", "")
 	if len(move) != 4 {
-		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrIllegalMove)
+		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrInvalidMove)
 	}
 
 	if !g.isValidFile(move[0]) ||
 		!g.isValidRank(move[1]) ||
 		!g.isValidFile(move[2]) ||
 		!g.isValidRank(move[3]) {
-		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrIllegalMove)
+		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrInvalidMove)
 	}
 
 	fromIndex := g.fileRankToIndex(move[0], move[1])
@@ -182,4 +182,24 @@ func (g *Game) Round() RoundResult {
 		Grid:        g.GridRaw(),
 		ActiveColor: g.ActiveColor(),
 	}
+}
+
+func (g *Game) Resign(color engine.Color) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.state.IsGameOver() {
+		return fmt.Errorf("%w: game is already over", ErrInvalidMove)
+	}
+
+	if color == engine.White {
+		g.state = StateWhiteResign
+		g.winner = engine.Black
+		return nil
+	}
+
+	g.state = StateBlackResign
+	g.winner = engine.Black
+
+	return nil
 }

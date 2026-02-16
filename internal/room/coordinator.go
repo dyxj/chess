@@ -146,7 +146,7 @@ func (c *Coordinator) ConnectWithToken(
 
 	err = c.runLoop(room, ticket.Color, conn, logger)
 	if err != nil {
-		return c.handleRunLoopError(err)
+		return c.handleRunLoopError(err, room, ticket.Color)
 	}
 
 	return nil
@@ -285,7 +285,7 @@ func (c *Coordinator) goConsumeRoundResult(
 					defer safe.RecoverWithLog(lg, "goConsumeRoundResult:broadcast")
 					defer wg.Done()
 
-					err := pub.PublishJson(roundResult)
+					err := pub.PublishJson(NewEventRound(roundResult))
 					if err != nil {
 						lg.Error("failed to broadcast", zap.Error(err))
 						return
@@ -430,16 +430,69 @@ func (c *Coordinator) processMoveAction(
 	return nil
 }
 
-func (c *Coordinator) handleRunLoopError(err error) error {
+func (c *Coordinator) handleRunLoopError(err error, room *Room, color engine.Color) error {
 	if websocketx.IsNetworkClosedError(err) {
 		return err
-	} else if wsErr, isErr := websocketx.IsWebSocketClosedError(err); isErr {
+	}
+
+	if wsErr, isErr := websocketx.IsWebSocketClosedError(err); isErr {
+		c.resignAndNotifyOpponent(room, color)
 		if wsErr.Code == ws.StatusNormalClosure {
 			return nil
 		}
 		return err
 	}
+
 	return err
+}
+
+func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
+	if room.Game.State().IsGameOver() {
+		return
+	}
+
+	err := room.Game.Resign(color)
+	if err != nil {
+		c.logger.Error("failed to resign game after websocket closed",
+			zap.String("room", room.Code),
+			zap.String("color", color.String()),
+			zap.Error(err))
+		return
+	}
+
+	pub, exist := c.getPublisher(room.Code, color.Opposite())
+	if !exist {
+		c.logger.Warn("failed to find publisher for opponent, cannot notify of resignation",
+			zap.String("room", room.Code),
+			zap.String("winner", color.Opposite().String()),
+			zap.String("resigner", color.String()),
+		)
+		return
+	}
+
+	err = pub.PublishJson(NewResignEvent(color))
+	if err != nil {
+		c.logger.Error("failed to publish resign event",
+			zap.String("room", room.Code),
+			zap.Error(err))
+		return
+	}
+
+	room.signalGameOver()
+
+	return
+}
+
+func (c *Coordinator) getPublisher(roomCode string, color engine.Color) (websocketPublisher, bool) {
+	pubs, exist := c.roomPublishers[roomCode]
+	if !exist {
+		return nil, false
+	}
+	pub, exist := pubs[color]
+	if !exist {
+		return nil, false
+	}
+	return pub, true
 }
 
 type websocketPublisher interface {

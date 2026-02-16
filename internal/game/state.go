@@ -9,14 +9,18 @@ const (
 	StateCheckmate
 	StateStalemate
 	StateDraw
+	StateWhiteResign
+	StateBlackResign
 )
 
 const (
-	stateInProgressStr = "in_progress"
-	stateCheckmateStr  = "checkmate"
-	stateStalemateStr  = "stalemate"
-	stateDrawStr       = "draw"
-	stateUnknownStr    = "unknown"
+	stateInProgressStr  = "in_progress"
+	stateCheckmateStr   = "checkmate"
+	stateStalemateStr   = "stalemate"
+	stateDrawStr        = "draw"
+	stateUnknownStr     = "unknown"
+	stateWhiteResignStr = "white_resign"
+	stateBlackResignStr = "black_resign"
 )
 
 func (s State) String() string {
@@ -29,13 +33,18 @@ func (s State) String() string {
 		return stateStalemateStr
 	case StateDraw:
 		return stateDrawStr
+	case StateWhiteResign:
+		return stateWhiteResignStr
+	case StateBlackResign:
+		return stateBlackResignStr
 	default:
 		return stateUnknownStr
 	}
 }
 
 func (s State) IsGameOver() bool {
-	return s == StateCheckmate || s == StateStalemate || s == StateDraw
+	return s == StateCheckmate || s == StateStalemate ||
+		s == StateDraw || s == StateWhiteResign || s == StateBlackResign
 }
 
 func (s State) MarshalText() ([]byte, error) {
@@ -54,6 +63,10 @@ func (s *State) UnmarshalText(text []byte) error {
 		*s = StateStalemate
 	case stateDrawStr:
 		*s = StateDraw
+	case stateWhiteResignStr:
+		*s = StateWhiteResign
+	case stateBlackResignStr:
+		*s = StateBlackResign
 	default:
 		return fmt.Errorf("unknown state: %s valid state(in_progress,checkmate,stalemate,draw)", str)
 	}
