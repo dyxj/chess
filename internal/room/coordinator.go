@@ -146,7 +146,7 @@ func (c *Coordinator) ConnectWithToken(
 
 	err = c.runLoop(room, ticket.Color, conn, logger)
 	if err != nil {
-		return c.handleRunLoopError(err, room, ticket.Color)
+		return c.handleRunLoopError(err, room, ticket.Color, logger)
 	}
 
 	return nil
@@ -180,7 +180,7 @@ func (c *Coordinator) runLoop(
 		return err
 	}
 
-	err = c.goProcessRoundResults(room, roundResultChan, logger)
+	processResultErrChan, err := c.goProcessRoundResults(room, color, roundResultChan, logger)
 	if err != nil {
 		return err
 	}
@@ -197,6 +197,13 @@ func (c *Coordinator) runLoop(
 			}
 			logger.Debug("exiting run loop, due to consume error")
 			return consumeErr
+		case processResultErr, ok := <-processResultErrChan:
+			if !ok {
+				processResultErrChan = nil
+				continue
+			}
+			logger.Debug("exiting run loop, due to process result error")
+			return processResultErr
 		case <-room.gameOverChan:
 			logger.Debug("exiting run loop, due to game over")
 			return nil
@@ -258,51 +265,70 @@ func (c *Coordinator) unregisterPublisher(roomCode string, color engine.Color) {
 
 // goProcessRoundResults listens to roundResultChan.
 // broadcast round results to both players concurrently in random order.
+//
 // If the round result indicates game over, it signals the room and exits.
 //
-// To simplify the current implementation, broadcasting is "best effort" and doesn't return error if failed.
-// Expected errors are websocket close error or network close error.
-// These are already handled by the main loop and caught first by the
-// consumerLoop which listen constantly to the websocket.
+// If an error occurred while publishing to the acting color, the error is published to
+// the errorChan and the function exits.
+//
+// If an error occurred while publishing to the opponent color, the error is logged
+// but not published and does not exit.
+// Besides network errors during publishing both publishers should face the same error.
+// - In the case, of network errors the routines will detect network errors even without
+// being notified by this process.
+//   - In case of other errors, this would result in the acting color exiting and resigning.
+//     Could consider introducing game.StateError, does not seem required at the moment.
 func (c *Coordinator) goProcessRoundResults(
 	room *Room,
+	color engine.Color,
 	roundResultChan <-chan game.RoundResult,
 	logger *zap.Logger,
-) error {
+) (<-chan error, error) {
 	pubs, exist := c.roomPublishers[room.Code]
 	if !exist {
-		return fmt.Errorf("no publishers found for room %s", room.Code)
+		return nil, fmt.Errorf("no publishers found for room %s", room.Code)
 	}
 	totalPubs := len(pubs)
+	errorChan := make(chan error)
 
 	go func() {
 		defer safe.RecoverWithLog(logger, "goProcessRoundResults")
+		defer close(errorChan)
 
 		for roundResult := range roundResultChan {
 			wg := &sync.WaitGroup{}
 			wg.Add(totalPubs)
 
-			for color, pub := range pubs {
+			var errColor error
+
+			for pColor, pub := range pubs {
 				// use concurrent publish to provide fairness
 				// though it doesn't matter as much for chess
 				// ranging over map provides random order
 				go func() {
 					lg := c.logger.With(
 						zap.String("room", room.Code),
-						zap.String("color", color.String()),
+						zap.String("color", pColor.String()),
 					)
 					defer safe.RecoverWithLog(lg, "goProcessRoundResults:broadcast")
 					defer wg.Done()
 
 					err := pub.PublishJson(NewEventRound(roundResult))
 					if err != nil {
-						lg.Error("failed to broadcast", zap.Error(err))
+						if pColor == color {
+							errColor = fmt.Errorf("round result broadcast failed: %w", err)
+						}
+
 						return
 					}
 				}()
 			}
-
 			wg.Wait()
+
+			if errColor != nil {
+				errorChan <- errColor
+				return
+			}
 
 			if roundResult.State.IsGameOver() {
 				room.signalGameOver()
@@ -311,7 +337,7 @@ func (c *Coordinator) goProcessRoundResults(
 		}
 	}()
 
-	return nil
+	return errorChan, nil
 }
 
 func (c *Coordinator) goConsumeLoop(
@@ -341,15 +367,7 @@ func (c *Coordinator) goConsumeLoop(
 				var partial ActionPartial
 				err := ws.ConsumeJson(&partial)
 				if err != nil {
-					if websocketx.IsNetworkClosedError(err) {
-						logger.Info("network closed")
-					} else if wsErr, isErr := websocketx.IsWebSocketClosedError(err); isErr {
-						logger.Info("websocket closed by client", zap.Error(wsErr))
-					} else {
-						logger.Error("failed to consume", zap.Error(err))
-					}
-
-					errChan <- err
+					errChan <- fmt.Errorf("consume action failed: %w", err)
 					return
 				}
 
@@ -439,19 +457,24 @@ func (c *Coordinator) processMoveAction(
 	return nil
 }
 
-func (c *Coordinator) handleRunLoopError(err error, room *Room, color engine.Color) error {
+func (c *Coordinator) handleRunLoopError(err error, room *Room, color engine.Color, logger *zap.Logger) error {
 	if websocketx.IsNetworkClosedError(err) {
+		logger.Info("network closed", zap.Error(err))
 		return err
 	}
 
 	if wsErr, isErr := websocketx.IsWebSocketClosedError(err); isErr {
+		logger.Info("websocket closed by client", zap.Error(err))
+
 		c.resignAndNotifyOpponent(room, color)
+
 		if wsErr.Code == ws.StatusNormalClosure {
 			return nil
 		}
 		return err
 	}
 
+	logger.Error("unexpected error in run loop", zap.Error(err))
 	return err
 }
 
