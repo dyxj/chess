@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "chess",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "room",
+      "item": [
+        {
+          "name": "create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set(\"roomCode\", response.code);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "abc123",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/room",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "room"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "join w",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set(\"wtoken\", response.token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"wplayer\",\n  \"color\": \"white\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/room/:code/join",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "room",
+                ":code",
+                "join"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "{{roomCode}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "join b",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set(\"btoken\", response.token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bplayer\",\n  \"color\": \"black\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/room/:code/join",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "room",
+                ":code",
+                "join"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "{{roomCode}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
