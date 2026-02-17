@@ -1,5 +1,11 @@
 # Chess
 
+<!-- TOC -->
+* [Chess](#chess)
+  * [CLI](#cli)
+  * [Road Map](#road-map)
+<!-- TOC -->
+
 ## CLI
 To run the game via CLI.
 ```
@@ -35,8 +41,8 @@ task cli:run icon=number
 ## Road Map
 - [x] Engine
 - [x] In person CLI
-- [ ] Online(websockets)
-  - in progress:  
-- [ ] Online Client
+- [ ] Online Server(websockets) - base version
+  - in progress: test cases
+- [ ] Online Client - base version 
 - [ ] Reconnect
 
