@@ -53,7 +53,14 @@ func (c *Connection) ConsumeJson(v any) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, v)
+	err = json.Unmarshal(data, v)
+	if err != nil {
+		return &InvalidPayloadError{
+			Msg: "ConsumeJson failed to unmarshal payload",
+			Err: err,
+		}
+	}
+	return nil
 }
 
 // WriteCloseStatusCode writes a close frame with the given status code and message

@@ -129,6 +129,7 @@ func (c *Coordinator) ConnectWithToken(
 		zap.String("room", room.Code),
 		zap.String("color", ticket.Color.String()),
 	)
+	logger.Info("connected to room")
 
 	defer func() {
 		logger.Debug("closing websocket connection")
@@ -146,7 +147,10 @@ func (c *Coordinator) ConnectWithToken(
 
 	err = c.runLoop(room, ticket.Color, conn, logger)
 	if err != nil {
-		return c.handleRunLoopError(err, room, ticket.Color, logger)
+		// errors after connection is established
+		// should be communicated via socket
+		c.handleRunLoopError(err, room, ticket.Color, conn, logger)
+		return nil
 	}
 
 	return nil
@@ -457,25 +461,47 @@ func (c *Coordinator) processMoveAction(
 	return nil
 }
 
-func (c *Coordinator) handleRunLoopError(err error, room *Room, color engine.Color, logger *zap.Logger) error {
+func (c *Coordinator) handleRunLoopError(
+	err error,
+	room *Room,
+	color engine.Color,
+	statusWriter websocketCloseStatusWriter,
+	logger *zap.Logger,
+) {
+	c.resignAndNotifyOpponent(room, color)
+
 	if websocketx.IsNetworkClosedError(err) {
 		logger.Info("network closed", zap.Error(err))
-		return err
+		return
 	}
 
 	if wsErr, isErr := websocketx.IsWebSocketClosedError(err); isErr {
-		logger.Info("websocket closed by client", zap.Error(err))
-
-		c.resignAndNotifyOpponent(room, color)
-
 		if wsErr.Code == ws.StatusNormalClosure {
-			return nil
+			logger.Info("websocket closed by client", zap.Error(err))
+		} else {
+			logger.Error("websocket closed by client", zap.Error(err))
 		}
-		return err
+		return
+	}
+
+	var invalidPayloadErr *websocketx.InvalidPayloadError
+	if errors.As(err, &invalidPayloadErr) {
+		logger.Info("invalid payload received from client", zap.Error(err))
+		ipErr := statusWriter.WriteCloseStatusCode(
+			ws.StatusInvalidFramePayloadData,
+			invalidPayloadErr.Unwrap().Error(),
+		)
+		if ipErr != nil {
+			logger.Error("failed to write invalid payload", zap.Error(ipErr))
+		}
+		return
 	}
 
 	logger.Error("unexpected error in run loop", zap.Error(err))
-	return err
+	csErr := statusWriter.WriteCloseStatusCode(ws.StatusInternalServerError, "internal error")
+	if csErr != nil {
+		logger.Error("failed to close status", zap.Error(csErr))
+	}
 }
 
 func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
@@ -543,4 +569,21 @@ type websocketPublisherConsumer interface {
 	websocketPublisher
 	websocketConsumer
 	websocketContext
+}
+
+type websocketCloseStatusWriter interface {
+	WriteCloseStatusCode(code ws.StatusCode, message string) error
+}
+
+func unwrapChain(err error) []error {
+	if err == nil {
+		return nil
+	}
+
+	var chain []error
+	for err != nil {
+		chain = append(chain, err)
+		err = errors.Unwrap(err)
+	}
+	return chain
 }
