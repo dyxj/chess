@@ -38,7 +38,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	room, err := h.creator.CreateRoom()
 	if err != nil {
 		h.logger.Error("failed to create room", zap.Error(err))
-		http.Error(w, "failed to create room", http.StatusInternalServerError)
+		httpx.InternalServerErrorResponse("failed to create room", w)
 		return
 	}
 

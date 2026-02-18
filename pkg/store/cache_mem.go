@@ -98,6 +98,12 @@ func (c *MemCache) Set(key string, value any, expiry time.Time) error {
 	return nil
 }
 
+func (c *MemCache) Clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items = make(map[string]cacheItem, 20)
+}
+
 func (c *MemCache) findItem(key string) (cacheItem, bool) {
 	item, ok := c.items[key]
 	if !ok {
