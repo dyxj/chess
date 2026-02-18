@@ -23,6 +23,7 @@ func TestRoomCreateHandler(t *testing.T) {
 		"POST",
 		testSvr.URL+"/room",
 		nil)
+	assert.NoError(t, err)
 
 	resp, err := testSvr.Client().Do(request)
 	if !assert.NoError(t, err) {
