@@ -5,15 +5,19 @@ import (
 	"time"
 
 	"github.com/dyxj/chess/internal/room"
+	"github.com/dyxj/chess/pkg/store"
 	"go.uber.org/zap"
 )
 
-func (s *Server) buildRouter() http.Handler {
+func BuildRouter(
+	logger *zap.Logger,
+	cache *store.MemCache,
+) http.Handler {
 	mux := http.NewServeMux()
 
 	roomCreateHandler,
 		roomJoinHandler,
-		roomConnectHandler := setupRoomRoutes(s.logger)
+		roomConnectHandler := setupRoomRoutes(logger, cache)
 
 	mux.Handle("POST /room", roomCreateHandler)
 	mux.Handle("POST /room/{code}/join", roomJoinHandler)
@@ -24,8 +28,12 @@ func (s *Server) buildRouter() http.Handler {
 
 func setupRoomRoutes(
 	logger *zap.Logger,
+	cache *store.MemCache,
 ) (*room.CreateHandler, *room.JoinHandler, *room.ConnectHandler) {
-	coordinator := room.NewCoordinator(logger, 30*time.Second)
+	coordinator := room.NewCoordinator(
+		logger, 30*time.Second,
+		room.NewMemCache(cache),
+	)
 
 	creatorHandler := room.NewCreateHandler(logger, coordinator)
 	joinHandler := room.NewJoinHandler(logger, coordinator)

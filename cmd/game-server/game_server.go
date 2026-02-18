@@ -8,6 +8,7 @@ import (
 
 	"github.com/dyxj/chess/internal/adapter/server"
 	"github.com/dyxj/chess/internal/config"
+	"github.com/dyxj/chess/pkg/store"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +31,9 @@ func main() {
 
 	httpServer := server.NewServer(logger, cfg.HTTPServerConfig)
 
-	errSig := httpServer.Run()
+	memCache := store.NewMemCache()
+	router := server.BuildRouter(logger, memCache)
+	errSig := httpServer.Run(router)
 
 	select {
 	case <-mainCtx.Done():

@@ -45,12 +45,10 @@ func NewServer(
 	}
 }
 
-func (s *Server) initServer() {
+func (s *Server) initServer(router http.Handler) {
 	addr := fmt.Sprintf("%v:%v", s.httpConfig.Host(), s.httpConfig.Port())
 
 	s.onGoingCtx, s.stopOngoingGracefully = context.WithCancel(context.Background())
-
-	router := s.buildRouter()
 
 	s.httpServer = &http.Server{
 		Addr:              addr,
@@ -64,8 +62,8 @@ func (s *Server) initServer() {
 	}
 }
 
-func (s *Server) Run() <-chan struct{} {
-	s.initServer()
+func (s *Server) Run(router http.Handler) <-chan struct{} {
+	s.initServer(router)
 
 	safe.GoWithLog(
 		func() {

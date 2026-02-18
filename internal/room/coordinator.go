@@ -31,10 +31,14 @@ type Coordinator struct {
 	roomPublishers map[string]map[engine.Color]websocketPublisher
 }
 
-func NewCoordinator(logger *zap.Logger, tokenDuration time.Duration) *Coordinator {
+func NewCoordinator(
+	logger *zap.Logger,
+	tokenDuration time.Duration,
+	cache *MemCache,
+) *Coordinator {
 	return &Coordinator{
 		logger:         logger,
-		cache:          NewMemCache(),
+		cache:          cache,
 		wsm:            websocketx.NewManager(logger),
 		ticketCache:    NewTicketCache(),
 		tokenDuration:  tokenDuration,
