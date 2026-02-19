@@ -6,8 +6,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/dyxj/chess/internal/adapter/server"
+	"github.com/dyxj/chess/internal/room"
 	"github.com/dyxj/chess/pkg/store"
 	"go.uber.org/zap"
 )
@@ -19,8 +21,9 @@ type Environment struct {
 	errorChan   chan error
 	cleanupDone chan struct{}
 
-	httptestServer *httptest.Server
-	memCache       *store.MemCache
+	httptestServer  *httptest.Server
+	memCache        *store.MemCache
+	roomCoordinator *room.Coordinator
 
 	runOnce   sync.Once
 	closeOnce sync.Once
@@ -46,6 +49,10 @@ func (e *Environment) HTTTPTestServer() *httptest.Server {
 	return e.httptestServer
 }
 
+func (e *Environment) RoomCoordinator() *room.Coordinator {
+	return e.roomCoordinator
+}
+
 func (e *Environment) Run() (<-chan struct{}, <-chan error) {
 	e.runOnce.Do(func() {
 		e.logger.Printf("starting environment")
@@ -67,7 +74,18 @@ func (e *Environment) Close() {
 func (e *Environment) run(ready chan struct{}, errorChan chan error) {
 	e.memCache = store.NewMemCache()
 
-	httptestServer, err := e.buildHttpTestServer(e.memCache)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		errorChan <- err
+		return
+	}
+
+	e.roomCoordinator = room.NewCoordinator(
+		logger, 30*time.Second,
+		room.NewMemCache(e.memCache),
+	)
+
+	httptestServer, err := e.buildHttpTestServer(e.roomCoordinator)
 	if err != nil {
 		errorChan <- err
 		return
@@ -77,7 +95,7 @@ func (e *Environment) run(ready chan struct{}, errorChan chan error) {
 	close(ready)
 }
 
-func (e *Environment) buildHttpTestServer(memCache *store.MemCache) (*httptest.Server, error) {
+func (e *Environment) buildHttpTestServer(roomCoordinator *room.Coordinator) (*httptest.Server, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, err
@@ -85,19 +103,21 @@ func (e *Environment) buildHttpTestServer(memCache *store.MemCache) (*httptest.S
 
 	router := server.BuildRouter(
 		logger,
-		memCache,
+		roomCoordinator,
 	)
 
 	return httptest.NewServer(router), nil
 }
 
 func (e *Environment) closeHttpTestServer() {
+	if e.httptestServer == nil {
+		return
+	}
 	e.logger.Printf("close http test server")
 	e.httptestServer.Close()
 }
 
 func (e *Environment) cleanup() {
-	defer e.httptestServer.Close()
 	e.closeHttpTestServer()
 	close(e.cleanupDone)
 }

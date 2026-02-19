@@ -5,9 +5,11 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dyxj/chess/internal/adapter/server"
 	"github.com/dyxj/chess/internal/config"
+	"github.com/dyxj/chess/internal/room"
 	"github.com/dyxj/chess/pkg/store"
 	"go.uber.org/zap"
 )
@@ -32,7 +34,12 @@ func main() {
 	httpServer := server.NewServer(logger, cfg.HTTPServerConfig)
 
 	memCache := store.NewMemCache()
-	router := server.BuildRouter(logger, memCache)
+
+	coordinator := room.NewCoordinator(
+		logger, 30*time.Second,
+		room.NewMemCache(memCache),
+	)
+	router := server.BuildRouter(logger, coordinator)
 	errSig := httpServer.Run(router)
 
 	select {
