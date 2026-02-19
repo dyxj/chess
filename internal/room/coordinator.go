@@ -149,6 +149,9 @@ func (c *Coordinator) ConnectWithToken(
 		logger.Debug("closed websocket connection")
 	}()
 
+	c.registerPublisher(room.Code, ticket.Color, conn)
+	defer c.unregisterPublisher(room.Code, ticket.Color)
+
 	err = c.runLoop(room, ticket.Color, conn, logger)
 	if err != nil {
 		// errors after connection is established
@@ -166,9 +169,6 @@ func (c *Coordinator) runLoop(
 	ws websocketPublisherConsumer,
 	logger *zap.Logger,
 ) error {
-	c.registerPublisher(room.Code, color, ws)
-	defer c.unregisterPublisher(room.Code, color)
-
 	roundResultChan, consumeErrChan := c.goConsumeLoop(room, color, ws, logger)
 
 	if room.HasBothPlayers() {
@@ -272,11 +272,13 @@ func (c *Coordinator) unregisterPublisher(roomCode string, color engine.Color) {
 	c.muRoomPubs.Lock()
 	defer c.muRoomPubs.Unlock()
 
-	if _, ok := c.roomPublishers[roomCode]; !ok {
+	pubs, ok := c.roomPublishers[roomCode]
+	if !ok {
 		return
 	}
-	delete(c.roomPublishers[roomCode], color)
-	if len(c.roomPublishers[roomCode]) == 0 {
+
+	delete(pubs, color)
+	if len(pubs) == 0 {
 		delete(c.roomPublishers, roomCode)
 	}
 }

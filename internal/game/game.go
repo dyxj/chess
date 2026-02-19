@@ -96,6 +96,8 @@ func (g *Game) ActiveColor() engine.Color {
 }
 
 func (g *Game) State() State {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	return g.state
 }
 

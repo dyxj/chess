@@ -26,7 +26,7 @@ func websocketDialAndListen(
 		return nil, nil, err
 	}
 
-	eventChan := make(chan room.EventPartial, 100)
+	eventChan := make(chan room.EventPartial, 10)
 
 	go func() {
 		defer safe.Recover()
