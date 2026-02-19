@@ -1,7 +1,8 @@
+//go:build websocket_integration
+
 package integration
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -11,48 +12,32 @@ import (
 	"github.com/dyxj/chess/internal/game"
 	"github.com/dyxj/chess/internal/room"
 	"github.com/dyxj/chess/test/testx"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const connectURLFormat = "ws://%s/room/connect?token=%s"
 
 func TestRoomConnectHandler_Disconnect(t *testing.T) {
+	go testx.SetTimeout(10 * time.Second)
+
 	logger := testx.GlobalEnv().Logger()
 
 	testSvr := testx.GlobalEnv().HTTTPTestServer()
 
-	memCache := testx.GlobalEnv().MemCache()
-	t.Cleanup(func() {
-		memCache.Clear()
-	})
-
 	c := testx.GlobalEnv().RoomCoordinator()
 
-	_, wToken, bToken, err := createRoomAndTokens(c)
+	code, wToken, bToken, err := createRoomAndTokens(c)
 	require.NoError(t, err)
+	logger.Printf("code: %s, wToken: %s, bToken: %s\n", code, wToken, bToken)
 
-	bctx, bcancelFunc := context.WithTimeout(t.Context(), 5*time.Second)
-	defer bcancelFunc()
-
-	bEventChan, _, bCloseDone, err := websocketDialAndListen(bctx,
+	bEventChan, bConn, err := websocketDialAndListen(
 		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
 		logger,
 	)
 	require.NoError(t, err)
+	defer bConn.Close()
 
-	<-time.After(100 * time.Millisecond)
-
-	wctx, wcancelFunc := context.WithTimeout(t.Context(), 4*time.Second)
-	defer wcancelFunc()
-	wEventChan, _, wCloseDone, err := websocketDialAndListen(wctx,
-		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
-		logger,
-	)
-	require.NoError(t, err)
-
-	<-time.After(50 * time.Millisecond)
-
+	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeMessage, b1.EventType)
@@ -62,70 +47,62 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
 
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer wConn.Close()
+
+	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	assert.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	assert.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
 
-	// disconnect
-	wcancelFunc()
+	// disconnect to resign
+	wConn.Close()
 
+	// After white disconnects, its channel should close.
 	_, ok = <-wEventChan
 	require.False(t, ok)
 
+	// Black should receive a resign event.
 	b3, ok := <-bEventChan
 	require.True(t, ok)
-	assert.Equal(t, room.EventTypeResign, b3.EventType)
+	require.Equal(t, room.EventTypeResign, b3.EventType)
 
 	var b3p room.EventResignPayload
 	err = json.Unmarshal(b3.Payload, &b3p)
 	require.NoError(t, err)
-	assert.Equal(t, engine.Black, b3p.Winner)
-	assert.Equal(t, engine.White, b3p.Resigner)
-
-	<-bCloseDone
-	<-wCloseDone
+	require.Equal(t, engine.Black, b3p.Winner)
+	require.Equal(t, engine.White, b3p.Resigner)
 }
 
-func TestRoomConnectHandler_SendAction(t *testing.T) {
+func TestRoomConnectHandler_SendActionMove(t *testing.T) {
+	go testx.SetTimeout(10 * time.Second)
+
 	logger := testx.GlobalEnv().Logger()
 
 	testSvr := testx.GlobalEnv().HTTTPTestServer()
 
-	memCache := testx.GlobalEnv().MemCache()
-	t.Cleanup(func() {
-		memCache.Clear()
-	})
-
 	c := testx.GlobalEnv().RoomCoordinator()
 
-	_, wToken, bToken, err := createRoomAndTokens(c)
+	code, wToken, bToken, err := createRoomAndTokens(c)
 	require.NoError(t, err)
+	logger.Printf("code: %s, wToken: %s, bToken: %s\n", code, wToken, bToken)
 
-	bctx, bcancelFunc := context.WithTimeout(t.Context(), 5*time.Second)
-	defer bcancelFunc()
-
-	bEventChan, bConn, bCloseDone, err := websocketDialAndListen(bctx,
+	bEventChan, bConn, err := websocketDialAndListen(
 		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
 		logger,
 	)
 	require.NoError(t, err)
+	defer bConn.Close()
 
-	<-time.After(100 * time.Millisecond)
-
-	wctx, wcancelFunc := context.WithTimeout(t.Context(), 4*time.Second)
-	defer wcancelFunc()
-	wEventChan, wConn, wCloseDone, err := websocketDialAndListen(wctx,
-		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
-		logger,
-	)
-	require.NoError(t, err)
-
-	<-time.After(50 * time.Millisecond)
-
+	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeMessage, b1.EventType)
@@ -135,17 +112,26 @@ func TestRoomConnectHandler_SendAction(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
 
-	err = writeActionMove(wConn, engine.Pawn, new(11), new(19))
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
 	require.NoError(t, err)
+	defer wConn.Close()
 
+	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	assert.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	assert.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
 
+	err = writeActionMove(wConn, engine.Pawn, new(11), new(19))
+	require.NoError(t, err)
+
+	// Both players should receive the result of the first move.
 	firstResult := game.RoundResult{
 		Count: 1,
 		MoveResult: &game.MoveResult{
@@ -165,9 +151,6 @@ func TestRoomConnectHandler_SendAction(t *testing.T) {
 		ActiveColor: engine.Black,
 	}
 
-	err = writeActionMove(bConn, engine.Pawn, new(48), new(40))
-	require.NoError(t, err)
-
 	w2, ok := <-wEventChan
 	require.True(t, ok)
 	err = validateRoundResult(w2, firstResult)
@@ -178,6 +161,10 @@ func TestRoomConnectHandler_SendAction(t *testing.T) {
 	err = validateRoundResult(b3, firstResult)
 	require.NoError(t, err)
 
+	err = writeActionMove(bConn, engine.Pawn, new(48), new(40))
+	require.NoError(t, err)
+
+	// Both players should receive the result of the second move.
 	secondResult := game.RoundResult{
 		Count: 2,
 		MoveResult: &game.MoveResult{
@@ -206,10 +193,48 @@ func TestRoomConnectHandler_SendAction(t *testing.T) {
 	require.True(t, ok)
 	err = validateRoundResult(b4, secondResult)
 	require.NoError(t, err)
+}
 
-	bcancelFunc()
-	wcancelFunc()
+func TestRoomConnectHandler_SendActionMove_Discard(t *testing.T) {
+	go testx.SetTimeout(10 * time.Second)
 
-	<-bCloseDone
-	<-wCloseDone
+	logger := testx.GlobalEnv().Logger()
+
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	code, wToken, bToken, err := createRoomAndTokens(c)
+	require.NoError(t, err)
+	logger.Printf("code: %s, wToken: %s, bToken: %s\n", code, wToken, bToken)
+
+	bEventChan, bConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer bConn.Close()
+
+	// Wait for black player to get "waiting" message
+	b1, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, b1.EventType)
+
+	var b1p room.EventMessagePayload
+	err = json.Unmarshal(b1.Payload, &b1p)
+	require.NoError(t, err)
+	require.Equal(t, "Waiting for white player", b1p.Message)
+
+	err = writeActionMove(bConn, engine.Pawn, new(48), new(40))
+	require.NoError(t, err)
+
+	// Wait for black player to get "waiting" message
+	b2, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, b2.EventType)
+
+	var b2p room.EventMessagePayload
+	err = json.Unmarshal(b2.Payload, &b2p)
+	require.NoError(t, err)
+	require.Equal(t, "Discarding input as room is not ready", b2p.Message)
 }

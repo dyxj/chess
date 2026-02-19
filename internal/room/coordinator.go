@@ -365,7 +365,7 @@ func (c *Coordinator) goConsumeLoop(
 	logger *zap.Logger,
 ) (<-chan game.RoundResult, <-chan error) {
 
-	roundResultChan := make(chan game.RoundResult)
+	roundResultChan := make(chan game.RoundResult, 5)
 	errChan := make(chan error)
 	go func() {
 		defer safe.RecoverWithLog(logger, "goConsumeLoop")

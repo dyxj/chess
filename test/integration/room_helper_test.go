@@ -17,30 +17,16 @@ import (
 )
 
 func websocketDialAndListen(
-	ctx context.Context,
 	url string,
 	logger *log.Logger,
-) (chan room.EventPartial, net.Conn, chan struct{}, error) {
+) (chan room.EventPartial, net.Conn, error) {
 
-	conn, _, _, err := ws.Dial(ctx, url)
+	conn, _, _, err := ws.Dialer{}.Dial(context.Background(), url)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	eventChan := make(chan room.EventPartial, 100)
-	closeDone := make(chan struct{})
-	go func() {
-		defer safe.Recover()
-		defer func() {
-			err := conn.Close()
-			if err != nil {
-				logger.Println(err)
-			}
-			close(closeDone)
-		}()
-		<-ctx.Done()
-		logger.Println("closing due to context done")
-	}()
 
 	go func() {
 		defer safe.Recover()
@@ -62,7 +48,7 @@ func websocketDialAndListen(
 		}
 	}()
 
-	return eventChan, conn, closeDone, nil
+	return eventChan, conn, nil
 }
 
 func createRoomAndTokens(

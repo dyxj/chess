@@ -81,7 +81,8 @@ func (e *Environment) run(ready chan struct{}, errorChan chan error) {
 	}
 
 	e.roomCoordinator = room.NewCoordinator(
-		logger, 30*time.Second,
+		logger,
+		30*time.Second,
 		room.NewMemCache(e.memCache),
 	)
 
