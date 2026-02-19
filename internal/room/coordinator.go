@@ -229,7 +229,8 @@ func (c *Coordinator) publishEventMessage(p websocketPublisher, msg string) erro
 }
 
 func (c *Coordinator) publishEventRound(p websocketPublisher, round game.RoundResult) error {
-	err := p.PublishJson(round)
+	e := NewEventRound(round)
+	err := p.PublishJson(e)
 	if err != nil {
 		return err
 	}
@@ -321,7 +322,7 @@ func (c *Coordinator) goProcessRoundResults(
 					defer safe.RecoverWithLog(lg, "goProcessRoundResults:broadcast")
 					defer wg.Done()
 
-					err := pub.PublishJson(NewEventRound(roundResult))
+					err := c.publishEventRound(pub, roundResult)
 					if err != nil {
 						if pColor == color {
 							errColor = fmt.Errorf("round result broadcast failed: %w", err)
