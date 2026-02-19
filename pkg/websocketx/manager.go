@@ -45,7 +45,7 @@ func (m *Manager) Open(
 		return nil, errors.New("key already exists")
 	}
 
-	c, _, _, err := ws.UpgradeHTTP(r, w)
+	c, _, _, err := ws.HTTPUpgrader{}.Upgrade(r, w)
 	if err != nil {
 		return nil, err
 	}
