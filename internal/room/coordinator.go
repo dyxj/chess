@@ -246,6 +246,15 @@ func (c *Coordinator) publishEventError(p websocketPublisher, eErr error) error 
 	return nil
 }
 
+func (c *Coordinator) publishEventResign(p websocketPublisher, resigner engine.Color) error {
+	e := NewResignEvent(resigner)
+	err := p.PublishJson(e)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub websocketPublisher) {
 	c.muRoomPubs.Lock()
 	defer c.muRoomPubs.Unlock()
@@ -533,7 +542,7 @@ func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
 		return
 	}
 
-	err = pub.PublishJson(NewResignEvent(color))
+	err = c.publishEventResign(pub, color)
 	if err != nil {
 		c.logger.Error("failed to publish resign event",
 			zap.String("room", room.Code),
