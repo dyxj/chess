@@ -121,3 +121,7 @@ func (e *Environment) cleanup() {
 	e.closeHttpTestServer()
 	close(e.cleanupDone)
 }
+
+func (e *Environment) Logger() *log.Logger {
+	return e.logger
+}
