@@ -16,12 +16,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+var dialer ws.Dialer
+
 func websocketDialAndListen(
 	url string,
 	logger *log.Logger,
 ) (chan room.EventPartial, net.Conn, error) {
 
-	conn, _, _, err := ws.Dialer{}.Dial(context.Background(), url)
+	conn, _, _, err := dialer.Dial(context.Background(), url)
 	if err != nil {
 		return nil, nil, err
 	}

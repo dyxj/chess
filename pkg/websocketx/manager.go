@@ -10,6 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	httpUpgrader ws.HTTPUpgrader
+)
+
 type Manager struct {
 	logger      *zap.Logger
 	mu          sync.RWMutex
@@ -45,7 +49,7 @@ func (m *Manager) Open(
 		return nil, errors.New("key already exists")
 	}
 
-	c, _, _, err := ws.HTTPUpgrader{}.Upgrade(r, w)
+	c, _, _, err := httpUpgrader.Upgrade(r, w)
 	if err != nil {
 		return nil, err
 	}
