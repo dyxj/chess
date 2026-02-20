@@ -13,8 +13,7 @@ func IsNetworkClosedError(err error) bool {
 }
 
 func IsWebSocketClosedError(err error) (wsutil.ClosedError, bool) {
-	var closeErr wsutil.ClosedError
-	if errors.As(err, &closeErr) {
+	if closeErr, ok := errors.AsType[wsutil.ClosedError](err); ok {
 		return closeErr, true
 	}
 	return wsutil.ClosedError{}, false

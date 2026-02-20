@@ -500,8 +500,7 @@ func (c *Coordinator) handleRunLoopError(
 		return
 	}
 
-	var invalidPayloadErr *websocketx.InvalidPayloadError
-	if errors.As(err, &invalidPayloadErr) {
+	if invalidPayloadErr, ok := errors.AsType[*websocketx.InvalidPayloadError](err); ok {
 		logger.Info("invalid payload received from client", zap.Error(err))
 		ipErr := statusWriter.WriteCloseStatusCode(
 			ws.StatusInvalidFramePayloadData,

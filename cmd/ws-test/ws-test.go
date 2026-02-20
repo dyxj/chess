@@ -105,9 +105,8 @@ func goRead(conn net.Conn, ctx context.Context, cancel context.CancelFunc) chan 
 						fmt.Println("Connection closed, stopping read")
 						return
 					}
-					var wsCloseErrr wsutil.ClosedError
-					if errors.As(err, &wsCloseErrr) {
-						fmt.Println("Connection closed, stopping read" + wsCloseErrr.Error())
+					if wsCloseErr, ok := errors.AsType[wsutil.ClosedError](err); ok {
+						fmt.Println("Connection closed, stopping read" + wsCloseErr.Error())
 						return
 					}
 					log.Printf("Error reading message: %v", err)
