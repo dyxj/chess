@@ -5,9 +5,9 @@
   * [Dev tools](#dev-tools)
     * [Taskfile](#taskfile)
     * [Postman](#postman)
+  * [Road Map](#road-map)
   * [Modes](#modes)
     * [CLI: cmd.game-cli](#cli-cmdgame-cli)
-  * [Road Map](#road-map)
 <!-- TOC -->
 
 ## Dev tools
@@ -15,6 +15,14 @@
 ### Taskfile
 It is recommended to install [Taskfile](https://taskfile.dev/) with autocompletion for ease of use.  
 Alternatively you could look into the `_taskfiles` folder for commonly used commands.
+
+```terminaloutput
+chess git:(main) ✗ task
+task: [default] task -l
+task: Available tasks for this project:
+* cli:build:       Build game-cli binary
+* cli:run:         Run game-cli. Build binary if does not exist
+```
 
 ### Postman
 Postman collection provided in `postman` folder for convenience.
@@ -28,13 +36,6 @@ Postman collection provided in `postman` folder for convenience.
 - [ ] Reconnect
 
 ## Modes
-```terminaloutput
-chess git:(main) ✗ task
-task: [default] task -l
-task: Available tasks for this project:
-* cli:build:       Build game-cli binary
-* cli:run:         Run game-cli. Build binary if does not exist
-```
 
 ### CLI: cmd.game-cli
 `cli` is a simple command line interface for playing chess in person.  
