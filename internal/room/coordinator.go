@@ -604,16 +604,3 @@ type websocketPublisherConsumer interface {
 type websocketCloseStatusWriter interface {
 	WriteCloseStatusCode(code ws.StatusCode, message string) error
 }
-
-func unwrapChain(err error) []error {
-	if err == nil {
-		return nil
-	}
-
-	var chain []error
-	for err != nil {
-		chain = append(chain, err)
-		err = errors.Unwrap(err)
-	}
-	return chain
-}
