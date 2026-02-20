@@ -32,6 +32,134 @@ func (g *Game) ApplyMove(m Move) (RoundResult, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	return g.applyMove(m)
+}
+
+func (g *Game) UndoLastMove() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.b.UndoLastMove()
+}
+
+func (g *Game) ActiveColor() engine.Color {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.b.ActiveColor()
+}
+
+func (g *Game) State() State {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.state
+}
+
+func (g *Game) GridRaw() [64]int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.b.GridRaw()
+}
+
+// ApplyMoveWithFileRank : format a2a3
+// removes all spaces and converts to Move
+// then calls ApplyMove
+func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	move = strings.ReplaceAll(move, " ", "")
+	if len(move) != 4 {
+		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrInvalidMove)
+	}
+
+	if !g.isValidFile(move[0]) ||
+		!g.isValidRank(move[1]) ||
+		!g.isValidFile(move[2]) ||
+		!g.isValidRank(move[3]) {
+		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrInvalidMove)
+	}
+
+	fromIndex := g.fileRankToIndex(move[0], move[1])
+	m := Move{
+		Color:  g.b.ActiveColor(),
+		Symbol: g.b.Symbol(engine.IndexToMailbox(fromIndex)),
+		From:   fromIndex,
+		To:     g.fileRankToIndex(move[2], move[3]),
+	}
+
+	return g.applyMove(m)
+}
+
+func (g *Game) ForceDraw() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.canForceDraw() {
+		g.state = StateDraw
+		return nil
+	}
+	return ErrNotEligibleToForceDraw
+}
+
+func (g *Game) Winner() engine.Color {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.winner
+}
+
+func (g *Game) Symbol(pos int) engine.Symbol {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.b.Symbol(engine.IndexToMailbox(pos))
+}
+
+func (g *Game) Round() RoundResult {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	var mr *MoveResult
+	move, ok := g.b.LastMove()
+	if ok {
+		mr = new(fromEngine(move))
+	}
+
+	return RoundResult{
+		Count:       g.b.MoveCount(),
+		MoveResult:  mr,
+		State:       g.state,
+		Grid:        g.b.GridRaw(),
+		ActiveColor: g.b.ActiveColor(),
+	}
+}
+
+func (g *Game) Resign(color engine.Color) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.state.IsGameOver() {
+		return fmt.Errorf("%w: game is already over", ErrInvalidMove)
+	}
+
+	if color == engine.White {
+		g.state = StateWhiteResign
+		g.winner = engine.Black
+		return nil
+	}
+
+	g.state = StateBlackResign
+	g.winner = engine.Black
+
+	return nil
+}
+
+// ----- unexported ------- //
+// makes it easier to check concurrent access
+
+func (g *Game) applyMove(m Move) (RoundResult, error) {
 	engineMove, err := g.validateAndConvertMove(m)
 	if err != nil {
 		return RoundResult{}, err
@@ -44,14 +172,12 @@ func (g *Game) ApplyMove(m Move) (RoundResult, error) {
 
 	g.state = g.calculateGameState()
 
-	mr := fromEngine(engineMove)
-
 	return RoundResult{
 		Count:       g.b.MoveCount(),
-		MoveResult:  &mr,
+		MoveResult:  new(fromEngine(engineMove)),
 		State:       g.state,
-		Grid:        g.GridRaw(),
-		ActiveColor: g.ActiveColor(),
+		Grid:        g.b.GridRaw(),
+		ActiveColor: g.b.ActiveColor(),
 	}, nil
 }
 
@@ -84,52 +210,8 @@ func (g *Game) validateAndConvertMove(m Move) (engine.Move, error) {
 	return moves[moveIndex], nil
 }
 
-func (g *Game) UndoLastMove() bool {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	return g.b.UndoLastMove()
-}
-
-func (g *Game) ActiveColor() engine.Color {
-	return g.b.ActiveColor()
-}
-
-func (g *Game) State() State {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	return g.state
-}
-
-func (g *Game) GridRaw() [64]int {
-	return g.b.GridRaw()
-}
-
-// ApplyMoveWithFileRank : format a2a3
-// removes all spaces and converts to Move
-// then calls ApplyMove
-func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
-	move = strings.ReplaceAll(move, " ", "")
-	if len(move) != 4 {
-		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrInvalidMove)
-	}
-
-	if !g.isValidFile(move[0]) ||
-		!g.isValidRank(move[1]) ||
-		!g.isValidFile(move[2]) ||
-		!g.isValidRank(move[3]) {
-		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrInvalidMove)
-	}
-
-	fromIndex := g.fileRankToIndex(move[0], move[1])
-	m := Move{
-		Color:  g.b.ActiveColor(),
-		Symbol: g.b.Symbol(engine.IndexToMailbox(fromIndex)),
-		From:   fromIndex,
-		To:     g.fileRankToIndex(move[2], move[3]),
-	}
-
-	return g.ApplyMove(m)
+func (g *Game) canForceDraw() bool {
+	return g.b.Is100MoveDraw() || g.b.Is3FoldDraw()
 }
 
 func (g *Game) isValidFile(r byte) bool {
@@ -144,64 +226,4 @@ func (g *Game) fileRankToIndex(file, rank byte) int {
 	fileIndex := int(file - 'a') // 'a'-'h' -> 0-7
 	rankIndex := int(rank - '1') // '1'-'8' -> 0-7
 	return rankIndex*8 + fileIndex
-}
-
-func (g *Game) ForceDraw() error {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	if g.canForceDraw() {
-		g.state = StateDraw
-		return nil
-	}
-	return ErrNotEligibleToForceDraw
-}
-
-func (g *Game) canForceDraw() bool {
-	return g.b.Is100MoveDraw() || g.b.Is3FoldDraw()
-}
-
-func (g *Game) Winner() engine.Color {
-	return g.winner
-}
-
-func (g *Game) Symbol(pos int) engine.Symbol {
-	return g.b.Symbol(engine.IndexToMailbox(pos))
-}
-
-func (g *Game) Round() RoundResult {
-	var mr *MoveResult
-	move, ok := g.b.LastMove()
-	if ok {
-		round := fromEngine(move)
-		mr = &round
-	}
-
-	return RoundResult{
-		Count:       g.b.MoveCount(),
-		MoveResult:  mr,
-		State:       g.state,
-		Grid:        g.GridRaw(),
-		ActiveColor: g.ActiveColor(),
-	}
-}
-
-func (g *Game) Resign(color engine.Color) error {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	if g.state.IsGameOver() {
-		return fmt.Errorf("%w: game is already over", ErrInvalidMove)
-	}
-
-	if color == engine.White {
-		g.state = StateWhiteResign
-		g.winner = engine.Black
-		return nil
-	}
-
-	g.state = StateBlackResign
-	g.winner = engine.Black
-
-	return nil
 }
