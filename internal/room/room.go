@@ -58,6 +58,8 @@ type Room struct {
 	Game          *game.Game
 	whitePlayer   *Player
 	blackPlayer   *Player
+	whitePub      websocketPublisher
+	blackPub      websocketPublisher
 	CreatedTime   time.Time
 	ticketsIssued int
 	readyChan     chan struct{}
@@ -143,13 +145,63 @@ func (r *Room) SetStatus(s Status) {
 	r.status = s
 }
 
-func (r *Room) HasBothPlayers() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if r.whitePlayer != nil && r.blackPlayer != nil {
+func (r *Room) setPublisher(color engine.Color, pub websocketPublisher) (hasBoth bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if color == engine.White {
+		r.whitePub = pub
+	} else {
+		r.blackPub = pub
+	}
+
+	if r.whitePub != nil && r.blackPub != nil {
 		return true
 	}
+
 	return false
+}
+
+func (r *Room) publisher(color engine.Color) (websocketPublisher, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var pub websocketPublisher
+	if color == engine.White {
+		pub = r.whitePub
+	} else {
+		pub = r.blackPub
+	}
+
+	if pub == nil {
+		return nil, false
+	}
+
+	return pub, true
+}
+
+func (r *Room) publishers() map[engine.Color]websocketPublisher {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	m := make(map[engine.Color]websocketPublisher, 2)
+	if r.whitePub != nil {
+		m[engine.White] = r.whitePub
+	}
+	if r.blackPub != nil {
+		m[engine.Black] = r.blackPub
+	}
+	return m
+}
+
+func (r *Room) removePublisher(color engine.Color) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if color == engine.White {
+		r.whitePub = nil
+	}
+	r.blackPub = nil
 }
 
 func (r *Room) signalReady() {

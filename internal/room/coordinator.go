@@ -25,10 +25,6 @@ type Coordinator struct {
 	wsm           *websocketx.Manager
 	ticketCache   *TicketCache
 	tokenDuration time.Duration
-
-	// [room.code]
-	muRoomPubs     sync.RWMutex
-	roomPublishers map[string]map[engine.Color]websocketPublisher
 }
 
 func NewCoordinator(
@@ -37,12 +33,11 @@ func NewCoordinator(
 	cache *MemCache,
 ) *Coordinator {
 	return &Coordinator{
-		logger:         logger,
-		cache:          cache,
-		wsm:            websocketx.NewManager(logger),
-		ticketCache:    NewTicketCache(),
-		tokenDuration:  tokenDuration,
-		roomPublishers: make(map[string]map[engine.Color]websocketPublisher),
+		logger:        logger,
+		cache:         cache,
+		wsm:           websocketx.NewManager(logger),
+		ticketCache:   NewTicketCache(),
+		tokenDuration: tokenDuration,
 	}
 }
 
@@ -128,6 +123,9 @@ func (c *Coordinator) ConnectWithToken(
 	}
 	defer c.wsm.Delete(conn.Key())
 
+	hasBoth := room.setPublisher(ticket.Color, conn)
+	defer room.removePublisher(ticket.Color)
+
 	logger := c.logger.With(
 		zap.String("player", p.ID.String()),
 		zap.String("room", room.Code),
@@ -149,8 +147,16 @@ func (c *Coordinator) ConnectWithToken(
 		logger.Debug("closed websocket connection")
 	}()
 
-	c.registerPublisher(room.Code, ticket.Color, conn)
-	defer c.unregisterPublisher(room.Code, ticket.Color)
+	if !hasBoth {
+		err := c.publishEventMessage(conn, fmt.Sprintf("Waiting for %v player",
+			ticket.Color.Opposite()))
+		if err != nil {
+			return err
+		}
+	} else {
+		room.SetStatus(StatusInProgress)
+		room.signalReady()
+	}
 
 	err = c.runLoop(room, ticket.Color, conn, logger)
 	if err != nil {
@@ -171,16 +177,6 @@ func (c *Coordinator) runLoop(
 ) error {
 	roundResultChan, consumeErrChan := c.goConsumeLoop(room, color, ws, logger)
 
-	if room.HasBothPlayers() {
-		room.SetStatus(StatusInProgress)
-		room.signalReady()
-	} else {
-		xColor := color.Opposite()
-		err := c.publishEventMessage(ws, fmt.Sprintf("Waiting for %v player", xColor))
-		if err != nil {
-			return err
-		}
-	}
 	<-room.readyChan
 
 	err := c.publishEventRound(ws, room.Game.Round())
@@ -255,34 +251,6 @@ func (c *Coordinator) publishEventResign(p websocketPublisher, resigner engine.C
 	return nil
 }
 
-func (c *Coordinator) registerPublisher(roomCode string, color engine.Color, pub websocketPublisher) {
-	c.muRoomPubs.Lock()
-	defer c.muRoomPubs.Unlock()
-
-	pubs, ok := c.roomPublishers[roomCode]
-	if !ok {
-		pubs = make(map[engine.Color]websocketPublisher)
-		c.roomPublishers[roomCode] = pubs
-	}
-	// overwriting existing is expected in case of reconnection
-	pubs[color] = pub
-}
-
-func (c *Coordinator) unregisterPublisher(roomCode string, color engine.Color) {
-	c.muRoomPubs.Lock()
-	defer c.muRoomPubs.Unlock()
-
-	pubs, ok := c.roomPublishers[roomCode]
-	if !ok {
-		return
-	}
-
-	delete(pubs, color)
-	if len(pubs) == 0 {
-		delete(c.roomPublishers, roomCode)
-	}
-}
-
 // goProcessRoundResults listens to roundResultChan.
 // broadcast round results to both players concurrently in random order.
 //
@@ -304,11 +272,6 @@ func (c *Coordinator) goProcessRoundResults(
 	roundResultChan <-chan game.RoundResult,
 	logger *zap.Logger,
 ) (<-chan error, error) {
-	pubs, exist := c.getPublishers(room.Code)
-	if !exist {
-		return nil, fmt.Errorf("no publishers found for room %s", room.Code)
-	}
-	totalPubs := len(pubs)
 	errorChan := make(chan error)
 
 	go func() {
@@ -316,8 +279,9 @@ func (c *Coordinator) goProcessRoundResults(
 		defer close(errorChan)
 
 		for roundResult := range roundResultChan {
+			pubs := room.publishers()
 			wg := &sync.WaitGroup{}
-			wg.Add(totalPubs)
+			wg.Add(len(pubs))
 
 			var errColor error
 
@@ -533,7 +497,7 @@ func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
 		return
 	}
 
-	pub, exist := c.getPublisher(room.Code, color.Opposite())
+	pub, exist := room.publisher(color.Opposite())
 	if !exist {
 		c.logger.Warn("failed to find publisher for opponent, cannot notify of resignation",
 			zap.String("room", room.Code),
@@ -556,31 +520,31 @@ func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
 	return
 }
 
-func (c *Coordinator) getPublishers(roomCode string) (map[engine.Color]websocketPublisher, bool) {
-	c.muRoomPubs.RLock()
-	defer c.muRoomPubs.RUnlock()
+//func (c *Coordinator) getPublishers(roomCode string) (map[engine.Color]websocketPublisher, bool) {
+//	c.muRoomPubs.RLock()
+//	defer c.muRoomPubs.RUnlock()
+//
+//	pubs, exist := c.roomPublishers[roomCode]
+//	if !exist {
+//		return nil, false
+//	}
+//	return pubs, true
+//}
 
-	pubs, exist := c.roomPublishers[roomCode]
-	if !exist {
-		return nil, false
-	}
-	return pubs, true
-}
-
-func (c *Coordinator) getPublisher(roomCode string, color engine.Color) (websocketPublisher, bool) {
-	c.muRoomPubs.RLock()
-	defer c.muRoomPubs.RUnlock()
-
-	pubs, exist := c.roomPublishers[roomCode]
-	if !exist {
-		return nil, false
-	}
-	pub, exist := pubs[color]
-	if !exist {
-		return nil, false
-	}
-	return pub, true
-}
+//func (c *Coordinator) getPublisher(roomCode string, color engine.Color) (websocketPublisher, bool) {
+//	c.muRoomPubs.RLock()
+//	defer c.muRoomPubs.RUnlock()
+//
+//	pubs, exist := c.roomPublishers[roomCode]
+//	if !exist {
+//		return nil, false
+//	}
+//	pub, exist := pubs[color]
+//	if !exist {
+//		return nil, false
+//	}
+//	return pub, true
+//}
 
 type websocketPublisher interface {
 	PublishJson(v any) error

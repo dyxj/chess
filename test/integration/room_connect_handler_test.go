@@ -16,7 +16,7 @@ import (
 const connectURLFormat = "ws://%s/room/connect?token=%s"
 
 func TestRoomConnectHandler_Disconnect(t *testing.T) {
-	go testx.SetTimeout(10 * time.Second)
+	go testx.SetTimeout(t.Context(), 10*time.Second)
 
 	logger := testx.GlobalEnv().Logger()
 
@@ -81,7 +81,7 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 }
 
 func TestRoomConnectHandler_SendActionMove(t *testing.T) {
-	go testx.SetTimeout(10 * time.Second)
+	go testx.SetTimeout(t.Context(), 10*time.Second)
 
 	logger := testx.GlobalEnv().Logger()
 
@@ -194,7 +194,7 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 }
 
 func TestRoomConnectHandler_SendActionMove_Discard(t *testing.T) {
-	go testx.SetTimeout(10 * time.Second)
+	go testx.SetTimeout(t.Context(), 10*time.Second)
 
 	logger := testx.GlobalEnv().Logger()
 
