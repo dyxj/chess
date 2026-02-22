@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -23,26 +24,42 @@ func websocketDialAndListen(
 	logger *log.Logger,
 ) (chan room.EventPartial, net.Conn, error) {
 
-	conn, _, _, err := dialer.Dial(context.Background(), url)
+	conn, br, _, err := dialer.Dial(context.Background(), url)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	eventChan := make(chan room.EventPartial, 10)
+
+	// br is non-nil if the connection is buffered, so we need to use it for reading.
+	// This could happen if the server sends some data immediately after the connection is established.
+	var rw io.ReadWriter
+	if br != nil {
+		rw = struct {
+			io.Reader
+			io.Writer
+		}{br, conn}
+	} else {
+		rw = conn
+	}
 
 	go func() {
 		defer safe.Recover()
 		defer close(eventChan)
+		if br != nil {
+			defer func() {
+				br.Reset(nil)
+				ws.PutReader(br)
+			}()
+		}
 
 		for {
-			data, err := wsutil.ReadServerText(conn)
+			data, err := wsutil.ReadServerText(rw)
 			if err != nil {
 				logger.Printf("read error: %v", err)
 				return
 			}
 			var event room.EventPartial
-			err = json.Unmarshal(data, &event)
-			if err != nil {
+			if err = json.Unmarshal(data, &event); err != nil {
 				logger.Printf("unmarshal error: %v", err)
 				return
 			}
