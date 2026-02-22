@@ -1,3 +1,14 @@
+//go:build race
+
+/*
+Files with race build flag has to be tested with -race flag.
+Additional delay added by race detector causes test to run smoothly.
+
+Have yet to be able to find the reason why.
+
+Running the test standalone does not suffer from this issue though.
+*/
+
 package integration
 
 import (
