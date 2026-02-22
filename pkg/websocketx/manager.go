@@ -49,12 +49,12 @@ func (m *Manager) Open(
 		return nil, errors.New("key already exists")
 	}
 
-	c, _, _, err := httpUpgrader.Upgrade(r, w)
+	c, rw, _, err := httpUpgrader.Upgrade(r, w)
 	if err != nil {
 		return nil, err
 	}
 
-	conn := NewConnection(key, c, m.deleteChan)
+	conn := NewConnection(key, c, rw, m.deleteChan)
 	m.addConn(key, conn)
 
 	return conn, nil

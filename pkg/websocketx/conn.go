@@ -1,6 +1,7 @@
 package websocketx
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"net"
@@ -13,6 +14,7 @@ import (
 type Connection struct {
 	key        string
 	conn       net.Conn
+	rw         *bufio.ReadWriter
 	deleteChan chan<- string
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -23,12 +25,14 @@ type Connection struct {
 func NewConnection(
 	key string,
 	conn net.Conn,
+	rw *bufio.ReadWriter,
 	deleteChan chan<- string,
 ) *Connection {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &Connection{
 		key:        key,
 		conn:       conn,
+		rw:         rw,
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
 		deleteChan: deleteChan,
@@ -44,12 +48,14 @@ func (c *Connection) PublishJson(v any) error {
 	if err != nil {
 		return err
 	}
-
-	return wsutil.WriteServerText(c.conn, data)
+	if err = wsutil.WriteServerText(c.rw, data); err != nil {
+		return err
+	}
+	return c.rw.Flush()
 }
 
 func (c *Connection) ConsumeJson(v any) error {
-	data, err := wsutil.ReadClientText(c.conn)
+	data, err := wsutil.ReadClientText(c.rw)
 	if err != nil {
 		return err
 	}
@@ -67,11 +73,10 @@ func (c *Connection) ConsumeJson(v any) error {
 // The first close status written will be communicated to the client, subsequent calls will be ignored.
 // Does not close the connection, caller should call Close() to close the connection after writing close status code.
 func (c *Connection) WriteCloseStatusCode(code ws.StatusCode, msg string) error {
-	err := wsutil.WriteServerMessage(c.conn, ws.OpClose, ws.NewCloseFrameBody(code, msg))
-	if err != nil {
+	if err := wsutil.WriteServerMessage(c.rw, ws.OpClose, ws.NewCloseFrameBody(code, msg)); err != nil {
 		return err
 	}
-	return nil
+	return c.rw.Flush()
 }
 
 func (c *Connection) Close() error {
