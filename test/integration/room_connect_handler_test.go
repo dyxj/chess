@@ -10,6 +10,7 @@ import (
 	"github.com/dyxj/chess/internal/game"
 	"github.com/dyxj/chess/internal/room"
 	"github.com/dyxj/chess/test/testx"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -235,4 +236,84 @@ func TestRoomConnectHandler_SendActionMove_Discard(t *testing.T) {
 	err = json.Unmarshal(b2.Payload, &b2p)
 	require.NoError(t, err)
 	require.Equal(t, "Discarding input as room is not ready", b2p.Message)
+}
+
+func TestRoomConnectHandler_Checkmate(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	code, wToken, bToken, err := createRoomAndTokens(c)
+	require.NoError(t, err)
+	logger.Printf("code: %s, wToken: %s, bToken: %s\n", code, wToken, bToken)
+
+	bEventChan, bConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer bConn.Close()
+
+	// Wait for black player to get "waiting" message
+	b1, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, b1.EventType)
+
+	var b1p room.EventMessagePayload
+	err = json.Unmarshal(b1.Payload, &b1p)
+	require.NoError(t, err)
+	require.Equal(t, "Waiting for white player", b1p.Message)
+
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer wConn.Close()
+
+	// After white connects, both players receive the initial RoundResult.
+	w1, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+
+	b2, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+
+	// Game started
+	moves := quickestCheckmate()
+	mConn := wConn
+	resultsW := make([]room.EventPartial, 0, len(moves))
+	resultsB := make([]room.EventPartial, 0, len(moves))
+	for i, move := range moves {
+		err := writeActionMove(mConn, move.Payload.Symbol, move.Payload.From, move.Payload.To)
+		require.NoError(t, err, fmt.Sprintf("move %d failed", i))
+		if mConn == wConn {
+			mConn = bConn
+		} else {
+			mConn = wConn
+		}
+		wm, okwm := <-wEventChan
+		require.True(t, okwm, fmt.Sprintf("failed to receive event for move %d", i))
+		require.Equal(t, room.EventTypeRoundResult, wm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		resultsW = append(resultsW, wm)
+		bm, okbm := <-bEventChan
+		require.True(t, okbm, fmt.Sprintf("failed to receive event for move %d", i))
+		require.Equal(t, room.EventTypeRoundResult, bm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		resultsB = append(resultsB, bm)
+	}
+
+	rrW, err := extractRoundResult(resultsW[len(moves)-1])
+	require.NoError(t, err)
+	assert.True(t, rrW.State.IsGameOver())
+	assert.Equal(t, game.StateCheckmate, rrW.State)
+
+	rrB, err := extractRoundResult(resultsB[len(moves)-1])
+	require.NoError(t, err)
+	assert.True(t, rrB.State.IsGameOver())
+	assert.Equal(t, game.StateCheckmate, rrB.State)
 }

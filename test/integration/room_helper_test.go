@@ -162,3 +162,12 @@ func validateRoundResult(event room.EventPartial, exp game.RoundResult) error {
 
 	return nil
 }
+
+func quickestCheckmate() []ActionMove {
+	return []ActionMove{
+		NewActionMove(engine.Pawn, new(14), new(30)),  // 1. g4  (g2->g4)
+		NewActionMove(engine.Pawn, new(52), new(44)),  // 1... e6 (e7->e6)
+		NewActionMove(engine.Pawn, new(13), new(21)),  // 2. f3  (f2->f3)
+		NewActionMove(engine.Queen, new(59), new(31)), // 2... Qh4# (d8->h4)
+	}
+}
