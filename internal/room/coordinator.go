@@ -520,32 +520,6 @@ func (c *Coordinator) resignAndNotifyOpponent(room *Room, color engine.Color) {
 	return
 }
 
-//func (c *Coordinator) getPublishers(roomCode string) (map[engine.Color]websocketPublisher, bool) {
-//	c.muRoomPubs.RLock()
-//	defer c.muRoomPubs.RUnlock()
-//
-//	pubs, exist := c.roomPublishers[roomCode]
-//	if !exist {
-//		return nil, false
-//	}
-//	return pubs, true
-//}
-
-//func (c *Coordinator) getPublisher(roomCode string, color engine.Color) (websocketPublisher, bool) {
-//	c.muRoomPubs.RLock()
-//	defer c.muRoomPubs.RUnlock()
-//
-//	pubs, exist := c.roomPublishers[roomCode]
-//	if !exist {
-//		return nil, false
-//	}
-//	pub, exist := pubs[color]
-//	if !exist {
-//		return nil, false
-//	}
-//	return pub, true
-//}
-
 type websocketPublisher interface {
 	PublishJson(v any) error
 }
