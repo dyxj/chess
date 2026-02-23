@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+  GO_CMD: go
+
+tasks:
+  build:
+    desc: "Build game-server binary"
+    dir: ./cmd/game-server
+    cmds:
+      - |
+        {{.GO_CMD}} build -o ../../game-server
+
+  build-if-needed:
+    desc: "Build game-server binary only if it doesn't exist"
+    internal: true
+    vars:
+      PREFIX: '{{splitList ":" .TASK | first}}'
+    status:
+      - test -f ./game-server
+    cmds:
+      - task {{.PREFIX}}:build
+
+  run-local:
+    desc: "Run game-server. Build binary if does not exist"
+    deps: [build-if-needed]
+    dotenv: [.env.local]
+    cmds:
+      - |
+        ./game-server

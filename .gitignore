@@ -1,6 +1,10 @@
-# Custom
+# Custom builds
 game-cli
 !game-cli/
+game-server
+!game-server/
+
+# Custom coverage
 coverage.html
 coverage.out
 
