@@ -275,7 +275,7 @@ func (c *Coordinator) goProcessRoundResults(
 	errorChan := make(chan error)
 
 	go func() {
-		defer safe.RecoverWithLog(logger, "goProcessRoundResults")
+		defer safe.RecoverWithLog(logger, "goProcessRoundResults")()
 		defer close(errorChan)
 
 		for roundResult := range roundResultChan {
@@ -294,7 +294,7 @@ func (c *Coordinator) goProcessRoundResults(
 						zap.String("room", room.Code),
 						zap.String("color", pColor.String()),
 					)
-					defer safe.RecoverWithLog(lg, "goProcessRoundResults:broadcast")
+					defer safe.RecoverWithLog(lg, "goProcessRoundResults:broadcast")()
 					defer wg.Done()
 
 					err := c.publishEventRound(pub, roundResult)
@@ -334,7 +334,7 @@ func (c *Coordinator) goConsumeLoop(
 	roundResultChan := make(chan game.RoundResult, 5)
 	errChan := make(chan error)
 	go func() {
-		defer safe.RecoverWithLog(logger, "goConsumeLoop")
+		defer safe.RecoverWithLog(logger, "goConsumeLoop")()
 		defer logger.Debug("consume loop exited")
 		defer close(roundResultChan)
 		defer close(errChan)

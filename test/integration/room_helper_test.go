@@ -43,7 +43,7 @@ func websocketDialAndListen(
 	}
 
 	go func() {
-		defer safe.Recover()
+		defer safe.Recover()()
 		defer close(eventChan)
 		if br != nil {
 			defer func() {
