@@ -1,6 +1,8 @@
 # Custom
 game-cli
 !game-cli/
+coverage.html
+coverage.out
 
 .idea/dataSources.xml
 .idea/copilot*

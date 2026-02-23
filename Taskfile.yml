@@ -4,6 +4,7 @@ version: '3'
 
 includes:
   cli: ./_taskfiles/cli.yml
+  test: ./_taskfiles/test.yml
 
 tasks:
   default:
