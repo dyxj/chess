@@ -171,3 +171,27 @@ func quickestCheckmate() []ActionMove {
 		NewActionMove(engine.Queen, new(59), new(31)), // 2... Qh4# (d8->h4)
 	}
 }
+
+func quickestStalemate() []ActionMove {
+	return []ActionMove{
+		NewActionMove(engine.Pawn, new(12), new(20)),  // 1. e3    (e2->e3)
+		NewActionMove(engine.Pawn, new(48), new(32)),  // 1... a5  (a7->a5)
+		NewActionMove(engine.Queen, new(3), new(39)),  // 2. Qh5   (d1->h5)
+		NewActionMove(engine.Rook, new(56), new(40)),  // 2... Ra6 (a8->a6)
+		NewActionMove(engine.Queen, new(39), new(32)), // 3. Qxa5  (h5->a5)
+		NewActionMove(engine.Pawn, new(55), new(39)),  // 3... h5  (h7->h5)
+		NewActionMove(engine.Queen, new(32), new(50)), // 4. Qxc7  (a5->c7)
+		NewActionMove(engine.Rook, new(40), new(47)),  // 4... Rah6(a6->h6)
+		NewActionMove(engine.Pawn, new(15), new(31)),  // 5. h4    (h2->h4)
+		NewActionMove(engine.Pawn, new(53), new(45)),  // 5... f6  (f7->f6)
+		NewActionMove(engine.Queen, new(50), new(51)), // 6. Qxd7+ (c7->d7)
+		NewActionMove(engine.King, new(60), new(53)),  // 6... Kf7 (e8->f7)
+		NewActionMove(engine.Queen, new(51), new(49)), // 7. Qxb7  (d7->b7)
+		NewActionMove(engine.Queen, new(59), new(19)), // 7... Qd3 (d8->d3)
+		NewActionMove(engine.Queen, new(49), new(57)), // 8. Qxb8  (b7->b8)
+		NewActionMove(engine.Queen, new(19), new(55)), // 8... Qh7 (d3->h7)
+		NewActionMove(engine.Queen, new(57), new(58)), // 9. Qxc8  (b8->c8)
+		NewActionMove(engine.King, new(53), new(46)),  // 9... Kg6 (f7->g6)
+		NewActionMove(engine.Queen, new(58), new(44)), // 10. Qe6  (c8->e6) Stalemate
+	}
+}
