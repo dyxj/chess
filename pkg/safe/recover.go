@@ -12,8 +12,8 @@ func RecoverWithLog(logger *zap.Logger, msg string) func() {
 		if err := recover(); err != nil {
 			logger.Error(msg,
 				zap.Any("panic", err),
-				zap.ByteString("stack", debug.Stack()),
 			)
+			debug.PrintStack()
 		}
 	}
 }
