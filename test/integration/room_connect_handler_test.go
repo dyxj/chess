@@ -319,7 +319,7 @@ func TestRoomConnectHandler_Checkmate(t *testing.T) {
 }
 
 func TestRoomConnectHandler_Stalemate(t *testing.T) {
-	//go testx.SetTimeout(t.Context(), 10*time.Second)
+	go testx.SetTimeout(t.Context(), 10*time.Second)
 
 	logger := testx.GlobalEnv().Logger()
 
@@ -397,4 +397,147 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, rrB.State.IsGameOver())
 	assert.Equal(t, game.StateStalemate, rrB.State)
+}
+
+func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+	tt := []struct {
+		name    string
+		moveMod func(r room.ActionMovePayload) room.ActionMovePayload
+		errMsg  string
+	}{
+		{
+			name: "from required",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.From = nil
+				return r
+			},
+			errMsg: "from required",
+		},
+		{
+			name: "to required",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.To = nil
+				return r
+			},
+			errMsg: "to required",
+		},
+		{
+			name: "from out of range -ve",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.From = new(-1)
+				return r
+			},
+			errMsg: "from must be between 0 and 63",
+		},
+		{
+			name: "from out of range >63",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.From = new(64)
+				return r
+			},
+			errMsg: "from must be between 0 and 63",
+		},
+		{
+			name: "to out of range -ve",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.To = new(-1)
+				return r
+			},
+			errMsg: "to must be between 0 and 63",
+		},
+		{
+			name: "to out of range >63",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.To = new(64)
+				return r
+			},
+			errMsg: "to must be between 0 and 63",
+		},
+		{
+			name: "invalid symbol",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.Symbol = 999
+				return r
+			},
+			errMsg: "invalid symbol",
+		},
+		{
+			name: "invalid symbol(no symbol)",
+			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+				r.Symbol = 0
+				return r
+			},
+			errMsg: "invalid symbol",
+		},
+	}
+
+	logger := testx.GlobalEnv().Logger()
+
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			code, wToken, bToken, err := createRoomAndTokens(c)
+			require.NoError(t, err)
+			logger.Printf("code: %s, wToken: %s, bToken: %s\n", code, wToken, bToken)
+
+			bEventChan, bConn, err := websocketDialAndListen(
+				fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+				logger,
+			)
+			require.NoError(t, err)
+			defer bConn.Close()
+
+			// Wait for black player to get "waiting" message
+			b1, ok := <-bEventChan
+			require.True(t, ok)
+			require.Equal(t, room.EventTypeMessage, b1.EventType)
+
+			var b1p room.EventMessagePayload
+			err = json.Unmarshal(b1.Payload, &b1p)
+			require.NoError(t, err)
+			require.Equal(t, "Waiting for white player", b1p.Message)
+
+			wEventChan, wConn, err := websocketDialAndListen(
+				fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+				logger,
+			)
+			require.NoError(t, err)
+			defer wConn.Close()
+
+			// After white connects, both players receive the initial RoundResult.
+			w1, ok := <-wEventChan
+			require.True(t, ok)
+			require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+
+			b2, ok := <-bEventChan
+			require.True(t, ok)
+			require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+
+			// Game started
+
+			// Base Move
+			move := room.ActionMovePayload{
+				Symbol: engine.Pawn,
+				From:   new(12),
+				To:     new(20),
+			}
+
+			move = tc.moveMod(move)
+
+			err = writeActionMove(wConn, move.Symbol, move.From, move.To)
+			require.NoError(t, err)
+			wm, okwm := <-wEventChan
+			require.True(t, okwm)
+			require.Equal(t, room.EventTypeError, wm.EventType)
+
+			var result room.EventErrorPayload
+			err = json.Unmarshal(wm.Payload, &result)
+			require.NoError(t, err)
+			require.Equal(t, tc.errMsg, result.Error)
+		})
+	}
 }

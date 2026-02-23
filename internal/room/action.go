@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 
 	"github.com/dyxj/chess/internal/engine"
 	"github.com/dyxj/chess/internal/game"
@@ -31,13 +32,19 @@ func (p *ActionMovePayload) Validate() error {
 	if p.From == nil {
 		return errors.New("from required")
 	}
+	if *p.From < 0 || *p.From > 63 {
+		return errors.New("from must be between 0 and 63")
+	}
 
 	if p.To == nil {
 		return errors.New("to required")
 	}
+	if *p.To < 0 || *p.To > 63 {
+		return errors.New("to must be between 0 and 63")
+	}
 
-	if p.Symbol == 0 {
-		return errors.New("symbol required")
+	if !slices.Contains(engine.Symbols, p.Symbol) {
+		return errors.New("invalid symbol")
 	}
 
 	return nil
