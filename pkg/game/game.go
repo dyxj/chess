@@ -62,6 +62,13 @@ func (g *Game) GridRaw() [64]int {
 	return g.b.GridRaw()
 }
 
+func (g *Game) Pieces(c engine.Color) []engine.Piece {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.b.Pieces(c)
+}
+
 // ApplyMoveWithFileRank : format a2a3
 // removes all spaces and converts to Move
 // then calls ApplyMove

@@ -10,6 +10,7 @@ type Board interface {
 	UndoLastMove() bool
 	LastMove() (engine.Move, bool)
 	Piece(c engine.Color, s engine.Symbol, position int) (engine.Piece, bool)
+	Pieces(c engine.Color) []engine.Piece
 	Symbol(pos int) engine.Symbol
 	ActiveColor() engine.Color
 	GeneratePieceLegalMoves(p engine.Piece) ([]engine.Move, error)
