@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/pkg/engine"
 )
 
 type PlayerTicket struct {

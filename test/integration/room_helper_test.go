@@ -8,9 +8,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/internal/game"
-	"github.com/dyxj/chess/internal/room"
+	"github.com/dyxj/chess/pkg/engine"
+	game2 "github.com/dyxj/chess/pkg/game"
+	room2 "github.com/dyxj/chess/pkg/room"
 	"github.com/dyxj/chess/pkg/safe"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -22,13 +22,13 @@ var dialer ws.Dialer
 func websocketDialAndListen(
 	url string,
 	logger *log.Logger,
-) (chan room.EventPartial, net.Conn, error) {
+) (chan room2.EventPartial, net.Conn, error) {
 
 	conn, br, _, err := dialer.Dial(context.Background(), url)
 	if err != nil {
 		return nil, nil, err
 	}
-	eventChan := make(chan room.EventPartial, 10)
+	eventChan := make(chan room2.EventPartial, 10)
 
 	// br is non-nil if the connection is buffered, so we need to use it for reading.
 	// This could happen if the server sends some data immediately after the connection is established.
@@ -58,7 +58,7 @@ func websocketDialAndListen(
 				logger.Printf("read error: %v", err)
 				return
 			}
-			var event room.EventPartial
+			var event room2.EventPartial
 			if err = json.Unmarshal(data, &event); err != nil {
 				logger.Printf("unmarshal error: %v", err)
 				return
@@ -71,7 +71,7 @@ func websocketDialAndListen(
 }
 
 func createRoomAndTokens(
-	c *room.Coordinator,
+	c *room2.Coordinator,
 ) (code string, wToken string, bToken string, err error) {
 
 	r, err := c.CreateRoom()
@@ -105,24 +105,24 @@ func writeActionMove(conn net.Conn, symbol engine.Symbol, from *int, to *int) er
 	return nil
 }
 
-func extractRoundResult(event room.EventPartial) (game.RoundResult, error) {
-	var result game.RoundResult
+func extractRoundResult(event room2.EventPartial) (game2.RoundResult, error) {
+	var result game2.RoundResult
 	err := json.Unmarshal(event.Payload, &result)
 	if err != nil {
-		return game.RoundResult{}, err
+		return game2.RoundResult{}, err
 	}
 	return result, nil
 }
 
 type ActionMove struct {
-	Type    room.ActionType        `json:"type"`
-	Payload room.ActionMovePayload `json:"payload"`
+	Type    room2.ActionType        `json:"type"`
+	Payload room2.ActionMovePayload `json:"payload"`
 }
 
 func NewActionMove(symbol engine.Symbol, from *int, to *int) ActionMove {
 	return ActionMove{
-		Type: room.ActionTypeMove,
-		Payload: room.ActionMovePayload{
+		Type: room2.ActionTypeMove,
+		Payload: room2.ActionMovePayload{
 			Symbol: symbol,
 			From:   from,
 			To:     to,
@@ -130,8 +130,8 @@ func NewActionMove(symbol engine.Symbol, from *int, to *int) ActionMove {
 	}
 }
 
-func validateRoundResult(event room.EventPartial, exp game.RoundResult) error {
-	if event.EventType != room.EventTypeRoundResult {
+func validateRoundResult(event room2.EventPartial, exp game2.RoundResult) error {
+	if event.EventType != room2.EventTypeRoundResult {
 		return fmt.Errorf("unexpected event type: %s", event.EventType)
 	}
 	result, err := extractRoundResult(event)
@@ -140,19 +140,19 @@ func validateRoundResult(event room.EventPartial, exp game.RoundResult) error {
 	}
 
 	if !cmp.Equal(exp, result,
-		cmp.Transformer("DerefMoveResult", func(m *game.MoveResult) game.MoveResult {
+		cmp.Transformer("DerefMoveResult", func(m *game2.MoveResult) game2.MoveResult {
 			if m == nil {
-				return game.MoveResult{}
+				return game2.MoveResult{}
 			}
 			return *m
 		}),
 	) {
 
-		resultMr := game.MoveResult{}
+		resultMr := game2.MoveResult{}
 		if result.MoveResult != nil {
 			resultMr = *result.MoveResult
 		}
-		expMr := game.MoveResult{}
+		expMr := game2.MoveResult{}
 		if exp.MoveResult != nil {
 			expMr = *exp.MoveResult
 		}

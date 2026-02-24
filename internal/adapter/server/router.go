@@ -3,13 +3,13 @@ package server
 import (
 	"net/http"
 
-	"github.com/dyxj/chess/internal/room"
+	room2 "github.com/dyxj/chess/pkg/room"
 	"go.uber.org/zap"
 )
 
 func BuildRouter(
 	logger *zap.Logger,
-	coordinator *room.Coordinator,
+	coordinator *room2.Coordinator,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -26,12 +26,12 @@ func BuildRouter(
 
 func setupRoomRoutes(
 	logger *zap.Logger,
-	coordinator *room.Coordinator,
-) (*room.CreateHandler, *room.JoinHandler, *room.ConnectHandler) {
+	coordinator *room2.Coordinator,
+) (*room2.CreateHandler, *room2.JoinHandler, *room2.ConnectHandler) {
 
-	creatorHandler := room.NewCreateHandler(logger, coordinator)
-	joinHandler := room.NewJoinHandler(logger, coordinator)
-	connectHandler := room.NewConnectHandler(logger, coordinator)
+	creatorHandler := room2.NewCreateHandler(logger, coordinator)
+	joinHandler := room2.NewJoinHandler(logger, coordinator)
+	connectHandler := room2.NewConnectHandler(logger, coordinator)
 
 	return creatorHandler, joinHandler, connectHandler
 }

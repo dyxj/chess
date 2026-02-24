@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/internal/game"
+	"github.com/dyxj/chess/pkg/engine"
+	"github.com/dyxj/chess/pkg/game"
 	"github.com/dyxj/chess/pkg/safe"
 	"github.com/dyxj/chess/pkg/websocketx"
 	"github.com/gobwas/ws"

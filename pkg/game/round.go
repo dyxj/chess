@@ -1,6 +1,8 @@
 package game
 
-import "github.com/dyxj/chess/internal/engine"
+import (
+	"github.com/dyxj/chess/pkg/engine"
+)
 
 type RoundResult struct {
 	Count       int          `json:"count"`

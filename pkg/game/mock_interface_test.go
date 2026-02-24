@@ -12,7 +12,7 @@ package game
 import (
 	reflect "reflect"
 
-	engine "github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/pkg/engine"
 	gomock "go.uber.org/mock/gomock"
 )
 

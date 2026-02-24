@@ -3,7 +3,7 @@ package game
 import (
 	"fmt"
 
-	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/pkg/engine"
 )
 
 // Move

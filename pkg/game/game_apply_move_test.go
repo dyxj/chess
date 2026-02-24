@@ -4,7 +4,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/pkg/engine"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

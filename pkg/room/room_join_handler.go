@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dyxj/chess/internal/engine"
+	"github.com/dyxj/chess/pkg/engine"
 	"github.com/dyxj/chess/pkg/errorx"
 	"github.com/dyxj/chess/pkg/httpx"
 	"go.uber.org/zap"

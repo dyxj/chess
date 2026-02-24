@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dyxj/chess/internal/adapter/server"
-	"github.com/dyxj/chess/internal/room"
+	room2 "github.com/dyxj/chess/pkg/room"
 	"github.com/dyxj/chess/pkg/store"
 	"go.uber.org/zap"
 )
@@ -23,7 +23,7 @@ type Environment struct {
 
 	httptestServer  *httptest.Server
 	memCache        *store.MemCache
-	roomCoordinator *room.Coordinator
+	roomCoordinator *room2.Coordinator
 
 	runOnce   sync.Once
 	closeOnce sync.Once
@@ -49,7 +49,7 @@ func (e *Environment) HTTTPTestServer() *httptest.Server {
 	return e.httptestServer
 }
 
-func (e *Environment) RoomCoordinator() *room.Coordinator {
+func (e *Environment) RoomCoordinator() *room2.Coordinator {
 	return e.roomCoordinator
 }
 
@@ -80,10 +80,10 @@ func (e *Environment) run(ready chan struct{}, errorChan chan error) {
 		return
 	}
 
-	e.roomCoordinator = room.NewCoordinator(
+	e.roomCoordinator = room2.NewCoordinator(
 		logger,
 		30*time.Second,
-		room.NewMemCache(e.memCache),
+		room2.NewMemCache(e.memCache),
 	)
 
 	httptestServer, err := e.buildHttpTestServer(e.roomCoordinator)
@@ -96,7 +96,7 @@ func (e *Environment) run(ready chan struct{}, errorChan chan error) {
 	close(ready)
 }
 
-func (e *Environment) buildHttpTestServer(roomCoordinator *room.Coordinator) (*httptest.Server, error) {
+func (e *Environment) buildHttpTestServer(roomCoordinator *room2.Coordinator) (*httptest.Server, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, err

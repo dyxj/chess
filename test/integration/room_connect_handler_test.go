@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/internal/game"
-	"github.com/dyxj/chess/internal/room"
+	"github.com/dyxj/chess/pkg/engine"
+	game2 "github.com/dyxj/chess/pkg/game"
+	room2 "github.com/dyxj/chess/pkg/room"
 	"github.com/dyxj/chess/test/testx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,9 +39,9 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b1.EventType)
+	require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-	var b1p room.EventMessagePayload
+	var b1p room2.EventMessagePayload
 	err = json.Unmarshal(b1.Payload, &b1p)
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
@@ -56,11 +56,11 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, b2.EventType)
 
 	// disconnect to resign
 	wConn.Close()
@@ -72,9 +72,9 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 	// Black should receive a resign event.
 	b3, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeResign, b3.EventType)
+	require.Equal(t, room2.EventTypeResign, b3.EventType)
 
-	var b3p room.EventResignPayload
+	var b3p room2.EventResignPayload
 	err = json.Unmarshal(b3.Payload, &b3p)
 	require.NoError(t, err)
 	require.Equal(t, engine.Black, b3p.Winner)
@@ -104,9 +104,9 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b1.EventType)
+	require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-	var b1p room.EventMessagePayload
+	var b1p room2.EventMessagePayload
 	err = json.Unmarshal(b1.Payload, &b1p)
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
@@ -121,19 +121,19 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, b2.EventType)
 
 	err = writeActionMove(wConn, engine.Pawn, new(11), new(19))
 	require.NoError(t, err)
 
 	// Both players should receive the result of the first move.
-	firstResult := game.RoundResult{
+	firstResult := game2.RoundResult{
 		Count: 1,
-		MoveResult: &game.MoveResult{
+		MoveResult: &game2.MoveResult{
 			Color:       engine.White,
 			Symbol:      engine.Pawn,
 			From:        11,
@@ -145,7 +145,7 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 			Promotion:   0,
 			IsEnPassant: false,
 		},
-		State:       game.StateInProgress,
+		State:       game2.StateInProgress,
 		Grid:        [64]int{4, 2, 3, 5, 6, 3, 2, 4, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -4, -2, -3, -5, -6, -3, -2, -4},
 		ActiveColor: engine.Black,
 	}
@@ -164,9 +164,9 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 	require.NoError(t, err)
 
 	// Both players should receive the result of the second move.
-	secondResult := game.RoundResult{
+	secondResult := game2.RoundResult{
 		Count: 2,
-		MoveResult: &game.MoveResult{
+		MoveResult: &game2.MoveResult{
 			Color:       engine.Black,
 			Symbol:      engine.Pawn,
 			From:        48,
@@ -178,7 +178,7 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 			Promotion:   0,
 			IsEnPassant: false,
 		},
-		State:       game.StateInProgress,
+		State:       game2.StateInProgress,
 		Grid:        [64]int{4, 2, 3, 5, 6, 3, 2, 4, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -4, -2, -3, -5, -6, -3, -2, -4},
 		ActiveColor: engine.White,
 	}
@@ -217,9 +217,9 @@ func TestRoomConnectHandler_SendActionMove_Discard(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b1.EventType)
+	require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-	var b1p room.EventMessagePayload
+	var b1p room2.EventMessagePayload
 	err = json.Unmarshal(b1.Payload, &b1p)
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
@@ -230,9 +230,9 @@ func TestRoomConnectHandler_SendActionMove_Discard(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b2.EventType)
+	require.Equal(t, room2.EventTypeMessage, b2.EventType)
 
-	var b2p room.EventMessagePayload
+	var b2p room2.EventMessagePayload
 	err = json.Unmarshal(b2.Payload, &b2p)
 	require.NoError(t, err)
 	require.Equal(t, "Discarding input as room is not ready", b2p.Message)
@@ -261,9 +261,9 @@ func TestRoomConnectHandler_Checkmate(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b1.EventType)
+	require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-	var b1p room.EventMessagePayload
+	var b1p room2.EventMessagePayload
 	err = json.Unmarshal(b1.Payload, &b1p)
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
@@ -278,17 +278,17 @@ func TestRoomConnectHandler_Checkmate(t *testing.T) {
 	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, b2.EventType)
 
 	// Game started
 	moves := quickestCheckmate()
 	mConn := wConn
-	resultsW := make([]room.EventPartial, 0, len(moves))
-	resultsB := make([]room.EventPartial, 0, len(moves))
+	resultsW := make([]room2.EventPartial, 0, len(moves))
+	resultsB := make([]room2.EventPartial, 0, len(moves))
 	for i, move := range moves {
 		err := writeActionMove(mConn, move.Payload.Symbol, move.Payload.From, move.Payload.To)
 		require.NoError(t, err, fmt.Sprintf("move %d failed", i))
@@ -299,23 +299,23 @@ func TestRoomConnectHandler_Checkmate(t *testing.T) {
 		}
 		wm, okwm := <-wEventChan
 		require.True(t, okwm, fmt.Sprintf("failed to receive event for move %d", i))
-		require.Equal(t, room.EventTypeRoundResult, wm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		require.Equal(t, room2.EventTypeRoundResult, wm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
 		resultsW = append(resultsW, wm)
 		bm, okbm := <-bEventChan
 		require.True(t, okbm, fmt.Sprintf("failed to receive event for move %d", i))
-		require.Equal(t, room.EventTypeRoundResult, bm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		require.Equal(t, room2.EventTypeRoundResult, bm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
 		resultsB = append(resultsB, bm)
 	}
 
 	rrW, err := extractRoundResult(resultsW[len(moves)-1])
 	require.NoError(t, err)
 	assert.True(t, rrW.State.IsGameOver())
-	assert.Equal(t, game.StateCheckmate, rrW.State)
+	assert.Equal(t, game2.StateCheckmate, rrW.State)
 
 	rrB, err := extractRoundResult(resultsB[len(moves)-1])
 	require.NoError(t, err)
 	assert.True(t, rrB.State.IsGameOver())
-	assert.Equal(t, game.StateCheckmate, rrB.State)
+	assert.Equal(t, game2.StateCheckmate, rrB.State)
 }
 
 func TestRoomConnectHandler_Stalemate(t *testing.T) {
@@ -341,9 +341,9 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 	// Wait for black player to get "waiting" message
 	b1, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeMessage, b1.EventType)
+	require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-	var b1p room.EventMessagePayload
+	var b1p room2.EventMessagePayload
 	err = json.Unmarshal(b1.Payload, &b1p)
 	require.NoError(t, err)
 	require.Equal(t, "Waiting for white player", b1p.Message)
@@ -358,17 +358,17 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 	// After white connects, both players receive the initial RoundResult.
 	w1, ok := <-wEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, w1.EventType)
 
 	b2, ok := <-bEventChan
 	require.True(t, ok)
-	require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+	require.Equal(t, room2.EventTypeRoundResult, b2.EventType)
 
 	// Game started
 	moves := quickestStalemate()
 	mConn := wConn
-	resultsW := make([]room.EventPartial, 0, len(moves))
-	resultsB := make([]room.EventPartial, 0, len(moves))
+	resultsW := make([]room2.EventPartial, 0, len(moves))
+	resultsB := make([]room2.EventPartial, 0, len(moves))
 	for i, move := range moves {
 		logger.Printf("move: %d", i)
 		err := writeActionMove(mConn, move.Payload.Symbol, move.Payload.From, move.Payload.To)
@@ -380,35 +380,35 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 		}
 		wm, okwm := <-wEventChan
 		require.True(t, okwm, fmt.Sprintf("failed to receive event for move %d", i))
-		require.Equal(t, room.EventTypeRoundResult, wm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		require.Equal(t, room2.EventTypeRoundResult, wm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
 		resultsW = append(resultsW, wm)
 		bm, okbm := <-bEventChan
 		require.True(t, okbm, fmt.Sprintf("failed to receive event for move %d", i))
-		require.Equal(t, room.EventTypeRoundResult, bm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
+		require.Equal(t, room2.EventTypeRoundResult, bm.EventType, fmt.Sprintf("unexpected event type for move %d", i))
 		resultsB = append(resultsB, bm)
 	}
 
 	rrW, err := extractRoundResult(resultsW[len(moves)-1])
 	require.NoError(t, err)
 	assert.True(t, rrW.State.IsGameOver())
-	assert.Equal(t, game.StateStalemate, rrW.State)
+	assert.Equal(t, game2.StateStalemate, rrW.State)
 
 	rrB, err := extractRoundResult(resultsB[len(moves)-1])
 	require.NoError(t, err)
 	assert.True(t, rrB.State.IsGameOver())
-	assert.Equal(t, game.StateStalemate, rrB.State)
+	assert.Equal(t, game2.StateStalemate, rrB.State)
 }
 
 func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 	go testx.SetTimeout(t.Context(), 10*time.Second)
 	tt := []struct {
 		name    string
-		moveMod func(r room.ActionMovePayload) room.ActionMovePayload
+		moveMod func(r room2.ActionMovePayload) room2.ActionMovePayload
 		errMsg  string
 	}{
 		{
 			name: "from required",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.From = nil
 				return r
 			},
@@ -416,7 +416,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "to required",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.To = nil
 				return r
 			},
@@ -424,7 +424,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "from out of range -ve",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.From = new(-1)
 				return r
 			},
@@ -432,7 +432,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "from out of range >63",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.From = new(64)
 				return r
 			},
@@ -440,7 +440,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "to out of range -ve",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.To = new(-1)
 				return r
 			},
@@ -448,7 +448,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "to out of range >63",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.To = new(64)
 				return r
 			},
@@ -456,7 +456,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "invalid symbol",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.Symbol = 999
 				return r
 			},
@@ -464,7 +464,7 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 		},
 		{
 			name: "invalid symbol(no symbol)",
-			moveMod: func(r room.ActionMovePayload) room.ActionMovePayload {
+			moveMod: func(r room2.ActionMovePayload) room2.ActionMovePayload {
 				r.Symbol = 0
 				return r
 			},
@@ -494,9 +494,9 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 			// Wait for black player to get "waiting" message
 			b1, ok := <-bEventChan
 			require.True(t, ok)
-			require.Equal(t, room.EventTypeMessage, b1.EventType)
+			require.Equal(t, room2.EventTypeMessage, b1.EventType)
 
-			var b1p room.EventMessagePayload
+			var b1p room2.EventMessagePayload
 			err = json.Unmarshal(b1.Payload, &b1p)
 			require.NoError(t, err)
 			require.Equal(t, "Waiting for white player", b1p.Message)
@@ -511,16 +511,16 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 			// After white connects, both players receive the initial RoundResult.
 			w1, ok := <-wEventChan
 			require.True(t, ok)
-			require.Equal(t, room.EventTypeRoundResult, w1.EventType)
+			require.Equal(t, room2.EventTypeRoundResult, w1.EventType)
 
 			b2, ok := <-bEventChan
 			require.True(t, ok)
-			require.Equal(t, room.EventTypeRoundResult, b2.EventType)
+			require.Equal(t, room2.EventTypeRoundResult, b2.EventType)
 
 			// Game started
 
 			// Base Move
-			move := room.ActionMovePayload{
+			move := room2.ActionMovePayload{
 				Symbol: engine.Pawn,
 				From:   new(12),
 				To:     new(20),
@@ -532,9 +532,9 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 			require.NoError(t, err)
 			wm, okwm := <-wEventChan
 			require.True(t, okwm)
-			require.Equal(t, room.EventTypeError, wm.EventType)
+			require.Equal(t, room2.EventTypeError, wm.EventType)
 
-			var result room.EventErrorPayload
+			var result room2.EventErrorPayload
 			err = json.Unmarshal(wm.Payload, &result)
 			require.NoError(t, err)
 			require.Equal(t, tc.errMsg, result.Error)

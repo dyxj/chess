@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dyxj/chess/internal/room"
+	"github.com/dyxj/chess/pkg/room"
 	"github.com/dyxj/chess/test/testx"
 	"github.com/stretchr/testify/assert"
 )

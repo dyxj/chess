@@ -3,8 +3,8 @@ package room
 import (
 	"encoding/json"
 
-	"github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/internal/game"
+	"github.com/dyxj/chess/pkg/engine"
+	"github.com/dyxj/chess/pkg/game"
 )
 
 type EventType string

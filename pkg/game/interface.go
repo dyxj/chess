@@ -1,6 +1,8 @@
 package game
 
-import "github.com/dyxj/chess/internal/engine"
+import (
+	"github.com/dyxj/chess/pkg/engine"
+)
 
 //go:generate go run go.uber.org/mock/mockgen -destination=mock_interface_test.go -package=$GOPACKAGE . Board
 type Board interface {

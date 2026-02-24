@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dyxj/chess/internal/engine"
-	"github.com/dyxj/chess/internal/room"
+	"github.com/dyxj/chess/pkg/engine"
 	"github.com/dyxj/chess/pkg/httpx"
 	"github.com/dyxj/chess/pkg/randx"
+	room2 "github.com/dyxj/chess/pkg/room"
 	"github.com/dyxj/chess/test/testx"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,12 +24,12 @@ func TestRoomJoinHandler(t *testing.T) {
 		memCache.Clear()
 	})
 
-	r := room.NewEmptyRoom()
+	r := room2.NewEmptyRoom()
 	err := memCache.Add(r.Code, r, time.Time{})
 	assert.NoError(t, err)
 
 	color := randx.FromSlice(engine.Colors)
-	payload := room.JoinRequest{
+	payload := room2.JoinRequest{
 		Name:  color.String() + " player",
 		Color: color,
 	}
@@ -54,7 +54,7 @@ func TestRoomJoinHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var result room.JoinResponse
+	var result room2.JoinResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	assert.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_InvalidRequestBody(t *testing.T)
 		memCache.Clear()
 	})
 
-	r := room.NewEmptyRoom()
+	r := room2.NewEmptyRoom()
 	err := memCache.Add(r.Code, r, time.Time{})
 	assert.NoError(t, err)
 
@@ -113,7 +113,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_InvalidCode(t *testing.T) {
 	code := "invalid"
 
 	color := randx.FromSlice(engine.Colors)
-	payload := room.JoinRequest{
+	payload := room2.JoinRequest{
 		Name:  color.String() + " player",
 		Color: color,
 	}
@@ -158,20 +158,20 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_PayloadValidation(t *testing.T) 
 		memCache.Clear()
 	})
 
-	r := room.NewEmptyRoom()
+	r := room2.NewEmptyRoom()
 	err := memCache.Add(r.Code, r, time.Time{})
 	assert.NoError(t, err)
 
 	tt := []struct {
 		name       string
-		payload    func(room.JoinRequest) room.JoinRequest
+		payload    func(room2.JoinRequest) room2.JoinRequest
 		expMsg     string
 		expProp    string
 		expPropMsg string
 	}{
 		{
 			name: "empty name",
-			payload: func(r room.JoinRequest) room.JoinRequest {
+			payload: func(r room2.JoinRequest) room2.JoinRequest {
 				r.Name = ""
 				return r
 			},
@@ -181,7 +181,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_PayloadValidation(t *testing.T) 
 		},
 		{
 			name: "invalid color",
-			payload: func(r room.JoinRequest) room.JoinRequest {
+			payload: func(r room2.JoinRequest) room2.JoinRequest {
 				r.Color = engine.Color(0)
 				return r
 			},
@@ -194,7 +194,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_PayloadValidation(t *testing.T) 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			color := randx.FromSlice(engine.Colors)
-			payload := room.JoinRequest{
+			payload := room2.JoinRequest{
 				Name:  color.String() + " player",
 				Color: color,
 			}
@@ -239,7 +239,7 @@ func TestRoomJoinHandler_ShouldReturnNotFound(t *testing.T) {
 	})
 
 	color := randx.FromSlice(engine.Colors)
-	payload := room.JoinRequest{
+	payload := room2.JoinRequest{
 		Name:  color.String() + " player",
 		Color: color,
 	}
@@ -281,7 +281,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_MaxTicketsIssued(t *testing.T) {
 	})
 
 	var err error
-	r := room.NewEmptyRoom()
+	r := room2.NewEmptyRoom()
 	err = memCache.Add(r.Code, r, time.Time{})
 	assert.NoError(t, err)
 
@@ -290,7 +290,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_MaxTicketsIssued(t *testing.T) {
 	_, err = rCoordinator.IssueTicketToken(r.Code, "black player", engine.Black)
 
 	color := randx.FromSlice(engine.Colors)
-	payload := room.JoinRequest{
+	payload := room2.JoinRequest{
 		Name:  color.String() + " player",
 		Color: color,
 	}
@@ -332,15 +332,15 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_RoomStatusNotWaiting(t *testing.
 	})
 
 	var err error
-	r := room.NewEmptyRoom()
+	r := room2.NewEmptyRoom()
 	err = memCache.Add(r.Code, r, time.Time{})
 	assert.NoError(t, err)
 
 	tt := []struct {
-		status room.Status
+		status room2.Status
 	}{
-		{status: room.StatusInProgress},
-		{status: room.StatusCompleted},
+		{status: room2.StatusInProgress},
+		{status: room2.StatusCompleted},
 	}
 
 	for _, tc := range tt {
@@ -348,7 +348,7 @@ func TestRoomJoinHandler_ShouldReturnBadRequest_RoomStatusNotWaiting(t *testing.
 			r.SetStatus(tc.status)
 
 			color := randx.FromSlice(engine.Colors)
-			payload := room.JoinRequest{
+			payload := room2.JoinRequest{
 				Name:  color.String() + " player",
 				Color: color,
 			}
