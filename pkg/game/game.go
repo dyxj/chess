@@ -66,7 +66,14 @@ func (g *Game) Pieces(c engine.Color) []engine.Piece {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	return g.b.Pieces(c)
+	pieces := g.b.Pieces(c)
+	pp := make([]engine.Piece, len(pieces))
+	for i := 0; i < len(g.b.Pieces(c)); i++ {
+		pp[i] = pieces[i].WithPosition(
+			engine.MailboxToIndex(pieces[i].Position()),
+		)
+	}
+	return pp
 }
 
 // ApplyMoveWithFileRank : format a2a3

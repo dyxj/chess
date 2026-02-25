@@ -67,6 +67,15 @@ func (p *Piece) HasMoved() bool {
 	return p.moveCount > 0
 }
 
+func (p *Piece) WithPosition(pos int) Piece {
+	return Piece{
+		symbol:    p.symbol,
+		color:     p.color,
+		position:  pos,
+		moveCount: p.moveCount,
+	}
+}
+
 var isSlidingPiece = map[Symbol]bool{
 	Pawn:   false,
 	Knight: false,

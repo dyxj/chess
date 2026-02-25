@@ -41,8 +41,8 @@ var mailboxToIndex = func() map[int]int {
 	return lookup
 }()
 
-func MailboxToIndex(cell8x8 int) int {
-	if idx, exists := mailboxToIndex[cell8x8]; exists {
+func MailboxToIndex(mailbox int) int {
+	if idx, exists := mailboxToIndex[mailbox]; exists {
 		return idx
 	}
 	return -1
