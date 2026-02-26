@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/dyxj/chess/pkg/engine"
-	game2 "github.com/dyxj/chess/pkg/game"
+	"github.com/dyxj/chess/pkg/game"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +18,7 @@ type Player struct {
 type Adapter struct {
 	whitePlayer Player
 	blackPlayer Player
-	g           *game2.Game
+	g           *game.Game
 	reader      *bufio.Scanner
 	writer      *bufio.Writer
 	iconMapper  iconMapper
@@ -79,7 +79,7 @@ func (a *Adapter) run() {
 			a.write(err.Error())
 			continue
 		}
-		if a.g.State() != game2.StateInProgress {
+		if a.g.State() != game.StateInProgress {
 			break
 		}
 	}
@@ -122,7 +122,7 @@ func (a *Adapter) writeIntro() {
 }
 
 func (a *Adapter) gameOver() {
-	if a.g.State() == game2.StateDraw || a.g.State() == game2.StateStalemate {
+	if a.g.State() == game.StateDraw || a.g.State() == game.StateStalemate {
 		a.write(fmt.Sprintf("Game ended in a %v", a.g.State().String()))
 		return
 	}
@@ -161,7 +161,7 @@ func (a *Adapter) player(c engine.Color) Player {
 }
 
 func (a *Adapter) initGame() {
-	a.g = game2.NewGame(
+	a.g = game.NewGame(
 		engine.NewBoard(),
 	)
 	a.write(fmt.Sprintf("Move input format:[fromFile][fromRank][toFile][toRank].\nie:a2a3\n\nWhite: %s | Black: %s\n", a.whitePlayer.Name, a.blackPlayer.Name))

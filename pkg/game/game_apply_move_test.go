@@ -6,10 +6,11 @@ import (
 
 	"github.com/dyxj/chess/pkg/engine"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func TestApplyMove(t *testing.T) {
+func TestApplyMoveWithMock(t *testing.T) {
 	t.Run("successful move", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -317,5 +318,129 @@ func TestApplyMoveWithFileRank(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, g.state, StateInProgress)
+	})
+}
+
+func TestApplyMove(t *testing.T) {
+	t.Run("regular move", func(t *testing.T) {
+		g := NewGame(engine.NewBoard())
+
+		m := Move{
+			Color:  engine.White,
+			Symbol: engine.Knight,
+			From:   1,
+			To:     16,
+		}
+
+		_, err := g.ApplyMove(m)
+		assert.NoError(t, err)
+
+		assert.Equal(t, g.state, StateInProgress)
+	})
+
+	t.Run("promotion error(white), promotion not defined", func(t *testing.T) {
+		board := engine.NewEmptyBoard(engine.White)
+		// 84 uses mailbox representation
+		piece := engine.NewPiece(engine.Pawn, engine.White, 84, true)
+		err := board.LoadPieces([]engine.Piece{piece})
+		require.NoError(t, err)
+
+		g := NewGame(board)
+
+		m := Move{
+			Color:     engine.White,
+			Symbol:    engine.Pawn,
+			From:      51,
+			To:        59,
+			Promotion: 0,
+		}
+
+		_, err = g.ApplyMove(m)
+		require.ErrorIs(t, err, ErrIllegalMove)
+	})
+
+	t.Run("promotion error(black), promotion not defined white", func(t *testing.T) {
+		board := engine.NewEmptyBoard(engine.Black)
+		// 84 uses mailbox representation
+		piece := engine.NewPiece(engine.Pawn, engine.Black, 34, true)
+		err := board.LoadPieces([]engine.Piece{piece})
+		require.NoError(t, err)
+
+		g := NewGame(board)
+
+		m := Move{
+			Color:     engine.Black,
+			Symbol:    engine.Pawn,
+			From:      11,
+			To:        3,
+			Promotion: 0,
+		}
+
+		_, err = g.ApplyMove(m)
+		require.ErrorIs(t, err, ErrIllegalMove)
+	})
+
+	t.Run("promotion success(white)", func(t *testing.T) {
+		tt := []struct {
+			symbol engine.Symbol
+		}{
+			{engine.Queen},
+			{engine.Rook},
+			{engine.Bishop},
+			{engine.Knight},
+		}
+
+		for _, tc := range tt {
+			board := engine.NewEmptyBoard(engine.White)
+			// 84 uses mailbox representation
+			piece := engine.NewPiece(engine.Pawn, engine.White, 84, true)
+			err := board.LoadPieces([]engine.Piece{piece})
+			require.NoError(t, err)
+
+			g := NewGame(board)
+
+			m := Move{
+				Color:     engine.White,
+				Symbol:    engine.Pawn,
+				From:      51,
+				To:        59,
+				Promotion: tc.symbol,
+			}
+
+			_, err = g.ApplyMove(m)
+			assert.NoError(t, err)
+		}
+	})
+
+	t.Run("promotion success(black)", func(t *testing.T) {
+		tt := []struct {
+			symbol engine.Symbol
+		}{
+			{engine.Queen},
+			{engine.Rook},
+			{engine.Bishop},
+			{engine.Knight},
+		}
+
+		for _, tc := range tt {
+			board := engine.NewEmptyBoard(engine.Black)
+			// 84 uses mailbox representation
+			piece := engine.NewPiece(engine.Pawn, engine.Black, 34, true)
+			err := board.LoadPieces([]engine.Piece{piece})
+			require.NoError(t, err)
+
+			g := NewGame(board)
+
+			m := Move{
+				Color:     engine.Black,
+				Symbol:    engine.Pawn,
+				From:      11,
+				To:        3,
+				Promotion: tc.symbol,
+			}
+
+			_, err = g.ApplyMove(m)
+			assert.NoError(t, err)
+		}
 	})
 }

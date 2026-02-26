@@ -96,7 +96,7 @@ func (b *Board) generatePseudoLegalPawnMoves(piece Piece) ([]Move, error) {
 	return moves, nil
 }
 
-var promotionSymbols = []Symbol{Queen, Rook, Bishop, Knight}
+var PromotionSymbols = []Symbol{Queen, Rook, Bishop, Knight}
 
 func (b *Board) generatePawnPromotionMoves(
 	piece Piece,
@@ -104,7 +104,7 @@ func (b *Board) generatePawnPromotionMoves(
 	captured Symbol,
 ) []Move {
 	moves := make([]Move, 0, 4)
-	for _, promoSymbol := range promotionSymbols {
+	for _, promoSymbol := range PromotionSymbols {
 		moves = append(moves, Move{
 			Color:     piece.color,
 			Symbol:    piece.symbol,

@@ -16,10 +16,11 @@ import (
 // (  8) (  9) ( 10) ( 11) ( 12) ( 13) ( 14) ( 15)
 // (  0) (  1) (  2) (  3) (  4) (  5) (  6) (  7)
 type Move struct {
-	Color  engine.Color
-	Symbol engine.Symbol
-	From   int
-	To     int
+	Color     engine.Color
+	Symbol    engine.Symbol
+	From      int
+	To        int
+	Promotion engine.Symbol
 }
 
 func (m Move) mbTo() int {

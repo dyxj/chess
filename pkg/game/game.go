@@ -213,7 +213,10 @@ func (g *Game) validateAndConvertMove(m Move) (engine.Move, error) {
 
 	moveIndex := slices.IndexFunc(moves, func(move engine.Move) bool {
 		if move.From == m.mbFrom() && move.To == m.mbTo() {
-			return true
+			if move.Promotion == 0 {
+				return true
+			}
+			return move.Promotion == m.Promotion
 		}
 		return false
 	})

@@ -23,9 +23,10 @@ type ActionPartial struct {
 // ActionMovePayload
 // coordinates are pointers as 0 is a valid value
 type ActionMovePayload struct {
-	Symbol engine.Symbol `json:"symbol"`
-	From   *int          `json:"from"`
-	To     *int          `json:"to"`
+	Symbol    engine.Symbol `json:"symbol"`
+	From      *int          `json:"from"`
+	To        *int          `json:"to"`
+	Promotion engine.Symbol `json:"promotion"`
 }
 
 func (p *ActionMovePayload) Validate() error {
@@ -47,14 +48,19 @@ func (p *ActionMovePayload) Validate() error {
 		return errors.New("invalid symbol")
 	}
 
+	if p.Promotion != 0 && !slices.Contains(engine.PromotionSymbols, p.Promotion) {
+		return errors.New("invalid promotion symbol")
+	}
+
 	return nil
 }
 
 func (p *ActionMovePayload) ToMove(color engine.Color) game.Move {
 	return game.Move{
-		Color:  color,
-		Symbol: p.Symbol,
-		From:   *p.From,
-		To:     *p.To,
+		Color:     color,
+		Symbol:    p.Symbol,
+		From:      *p.From,
+		To:        *p.To,
+		Promotion: p.Promotion,
 	}
 }

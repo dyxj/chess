@@ -127,7 +127,8 @@ After connection is established actions can be sent via websocket in the followi
   "payload": {
     "symbol": 1,
     "from": 48,
-    "to": 50
+    "to": 50,
+    "promotion": 0
   }
 }
 ```
