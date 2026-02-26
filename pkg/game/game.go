@@ -76,7 +76,14 @@ func (g *Game) Pieces(c engine.Color) []engine.Piece {
 	return pp
 }
 
-// ApplyMoveWithFileRank : format a2a3
+var promotionNotationSymbol = map[string]engine.Symbol{
+	"Q": engine.Queen,
+	"R": engine.Rook,
+	"B": engine.Bishop,
+	"N": engine.Knight,
+}
+
+// ApplyMoveWithFileRank : format a2a3=N
 // removes all spaces and converts to Move
 // then calls ApplyMove
 func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
@@ -84,23 +91,37 @@ func (g *Game) ApplyMoveWithFileRank(move string) (RoundResult, error) {
 	defer g.mu.Unlock()
 
 	move = strings.ReplaceAll(move, " ", "")
-	if len(move) != 4 {
+
+	split := strings.Split(move, "=")
+	fromTo := split[0]
+	if len(fromTo) != 4 {
 		return RoundResult{}, fmt.Errorf("%w: input length is not equal 4", ErrInvalidMove)
 	}
 
-	if !g.isValidFile(move[0]) ||
-		!g.isValidRank(move[1]) ||
-		!g.isValidFile(move[2]) ||
-		!g.isValidRank(move[3]) {
+	promotion := engine.Symbol(0)
+	if len(split) > 1 {
+		pNotation := split[1]
+		s, ok := promotionNotationSymbol[pNotation]
+		if !ok {
+			return RoundResult{}, fmt.Errorf("%w: invalid promotion piece", ErrInvalidMove)
+		}
+		promotion = s
+	}
+
+	if !g.isValidFile(fromTo[0]) ||
+		!g.isValidRank(fromTo[1]) ||
+		!g.isValidFile(fromTo[2]) ||
+		!g.isValidRank(fromTo[3]) {
 		return RoundResult{}, fmt.Errorf("%w: file or rank is out of range", ErrInvalidMove)
 	}
 
-	fromIndex := g.fileRankToIndex(move[0], move[1])
+	fromIndex := g.fileRankToIndex(fromTo[0], fromTo[1])
 	m := Move{
-		Color:  g.b.ActiveColor(),
-		Symbol: g.b.Symbol(engine.IndexToMailbox(fromIndex)),
-		From:   fromIndex,
-		To:     g.fileRankToIndex(move[2], move[3]),
+		Color:     g.b.ActiveColor(),
+		Symbol:    g.b.Symbol(engine.IndexToMailbox(fromIndex)),
+		From:      fromIndex,
+		To:        g.fileRankToIndex(fromTo[2], fromTo[3]),
+		Promotion: promotion,
 	}
 
 	return g.applyMove(m)

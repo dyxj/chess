@@ -443,4 +443,43 @@ func TestApplyMove(t *testing.T) {
 			assert.NoError(t, err)
 		}
 	})
+
+	t.Run("promotion success notation(white)", func(t *testing.T) {
+		tt := []struct {
+			notation string
+			symbol   engine.Symbol
+		}{
+			{"Q", engine.Queen},
+			{"R", engine.Rook},
+			{"B", engine.Bishop},
+			{"N", engine.Knight},
+		}
+
+		for _, tc := range tt {
+			board := engine.NewEmptyBoard(engine.White)
+			// 84 uses mailbox representation
+			piece := engine.NewPiece(engine.Pawn, engine.White, 84, true)
+			err := board.LoadPieces([]engine.Piece{piece})
+			require.NoError(t, err)
+
+			g := NewGame(board)
+
+			result, err := g.ApplyMoveWithFileRank("d7d8=" + tc.notation)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.symbol, result.MoveResult.Promotion)
+		}
+	})
+
+	t.Run("promotion invalid notation(white)", func(t *testing.T) {
+		board := engine.NewEmptyBoard(engine.White)
+		// 84 uses mailbox representation
+		piece := engine.NewPiece(engine.Pawn, engine.White, 84, true)
+		err := board.LoadPieces([]engine.Piece{piece})
+		require.NoError(t, err)
+
+		g := NewGame(board)
+
+		_, err = g.ApplyMoveWithFileRank("d7d8=X")
+		assert.ErrorIs(t, err, ErrInvalidMove)
+	})
 }

@@ -160,11 +160,18 @@ func (a *Adapter) player(c engine.Color) Player {
 	return a.blackPlayer
 }
 
+const initGameText = `Move input format:[fromFile][fromRank][toFile][toRank].
+ie:a2a3
+ie:a7a8=Q (for promotion: Q, R, B, N")
+
+White: %s | Black: %s
+`
+
 func (a *Adapter) initGame() {
 	a.g = game.NewGame(
 		engine.NewBoard(),
 	)
-	a.write(fmt.Sprintf("Move input format:[fromFile][fromRank][toFile][toRank].\nie:a2a3\n\nWhite: %s | Black: %s\n", a.whitePlayer.Name, a.blackPlayer.Name))
+	a.write(fmt.Sprintf(initGameText, a.whitePlayer.Name, a.blackPlayer.Name))
 }
 
 func (a *Adapter) write(s string) {
