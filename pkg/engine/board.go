@@ -320,21 +320,6 @@ func (b *Board) GridFull() string {
 	return sb.String()
 }
 
-func (b *Board) Grid() string {
-	sb := strings.Builder{}
-	sb.Grow(208)
-	sb.WriteString("|")
-	for i := len(indexToMailbox) - 1; i >= 0; i-- {
-		v := indexToMailbox[i]
-		sb.WriteString(fmt.Sprintf("%2d|", b.Value(v)))
-		if v%10 == 1 && v != 21 {
-			sb.WriteString("\n|")
-		}
-	}
-	sb.WriteString("\n")
-	return sb.String()
-}
-
 // ---------------------------
 // 8 |56|57|58|59|60|61|62|63|
 // ---------------------------
