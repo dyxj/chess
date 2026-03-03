@@ -265,7 +265,10 @@ func (b *Board) isUnderAttack(pos int, defender Color) bool {
 	}
 
 	// Attacked by Pawn
-	for _, direction := range pawnCaptureDirections(attacker) {
+	// Use the defender's capture directions to look backward from the target square
+	// to find where an attacking pawn would be positioned.
+	// e.g. a Black pawn north of the White king captures southward onto the king.
+	for _, direction := range pawnCaptureDirections(defender) {
 		if b.isUnderAttackByFixDirection(pos, direction, attacker, Pawn) {
 			return true
 		}

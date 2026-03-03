@@ -169,31 +169,37 @@ func TestIsKingUnderAttackByKnight(t *testing.T) {
 }
 
 func TestIsKingUnderAttackByPawn(t *testing.T) {
-	whiteValidAttackDirections := []Direction{NW, NE}
-	blackValidAttackDirections := []Direction{SW, SE}
+	// A White pawn captures NE/NW, so it threatens from the SW/SE of the king
+	// (it is south of the king and attacks northward onto it).
+	// A Black pawn captures SE/SW, so it threatens from the NE/NW of the king
+	// (it is north of the king and attacks southward onto it).
+	whiteValidAttackPosition := []Direction{SW, SE}
+	blackValidAttackPosition := []Direction{NW, NE}
 
 	for _, defenderColor := range Colors {
 		for _, direction := range directionCircle {
 			t.Run(fmt.Sprintf("%v_%v", defenderColor, direction), func(t *testing.T) {
 				board := NewEmptyBoard()
 				var pieces []Piece
+				attackerColor := defenderColor.Opposite()
 
 				dKingPos := 54
 				pieces = append(pieces, NewPiece(King, defenderColor, dKingPos))
 
-				pieces = append(pieces, NewPiece(Pawn, defenderColor.Opposite(), dKingPos+int(direction)))
+				pieces = append(pieces, NewPiece(Pawn, attackerColor, dKingPos+int(direction)))
 
 				err := board.LoadPieces(pieces)
 				assert.NoError(t, err)
 
+				fmt.Println(board.GridFull())
 				isCheck := board.IsCheck(defenderColor)
 				assert.NoError(t, err)
 
-				validAttackDirections := whiteValidAttackDirections
-				if defenderColor.Opposite() == Black {
-					validAttackDirections = blackValidAttackDirections
+				validAttackPosition := whiteValidAttackPosition
+				if attackerColor == Black {
+					validAttackPosition = blackValidAttackPosition
 				}
-				assert.Equal(t, slices.Contains(validAttackDirections, direction), isCheck)
+				assert.Equal(t, slices.Contains(validAttackPosition, direction), isCheck)
 			})
 		}
 	}

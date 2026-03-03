@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 
@@ -482,4 +483,49 @@ func TestApplyMove(t *testing.T) {
 		_, err = g.ApplyMoveWithFileRank("d7d8=X")
 		assert.ErrorIs(t, err, ErrInvalidMove)
 	})
+}
+
+func TestApplyMoveCheckPawn(t *testing.T) {
+	board := engine.NewEmptyBoard(engine.White)
+
+	whiteKing := engine.NewPiece(engine.King, engine.White, engine.IndexToMailbox(4), false)
+	whiteQueen := engine.NewPiece(engine.Queen, engine.White, engine.IndexToMailbox(3), false)
+	whitePawn := engine.NewPiece(engine.Pawn, engine.White, engine.IndexToMailbox(18), true)
+	blackPawn := engine.NewPiece(engine.Pawn, engine.Black, engine.IndexToMailbox(19), true)
+
+	err := board.LoadPieces([]engine.Piece{whiteKing, whiteQueen, blackPawn, whitePawn})
+	require.NoError(t, err)
+
+	g := NewGame(board)
+	fmt.Println(board.GridFull())
+
+	_, err = g.ApplyMove(Move{
+		Color:     engine.White,
+		Symbol:    engine.Pawn,
+		From:      18,
+		To:        26,
+		Promotion: 0,
+	})
+	require.NoError(t, err)
+	fmt.Println(board.GridFull())
+
+	_, err = g.ApplyMove(Move{
+		Color:     engine.Black,
+		Symbol:    engine.Pawn,
+		From:      19,
+		To:        11,
+		Promotion: 0,
+	})
+	require.NoError(t, err)
+	fmt.Println(board.GridFull())
+
+	_, err = g.ApplyMove(Move{
+		Color:     engine.White,
+		Symbol:    engine.Pawn,
+		From:      26,
+		To:        34,
+		Promotion: 0,
+	})
+	require.ErrorIs(t, err, ErrIllegalMove)
+	fmt.Println(board.GridFull())
 }
