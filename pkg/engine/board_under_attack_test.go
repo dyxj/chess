@@ -111,6 +111,22 @@ func TestIsKingUnderAttackBySliders(t *testing.T) {
 					assert.NoError(t, err)
 					assert.Equal(t, false, isCheck)
 				})
+
+				t.Run(fmt.Sprintf("%v_%v_%v_blocked_own", tc.name, defenderColor, direction), func(t *testing.T) {
+					board := NewEmptyBoard()
+					dKingPos := 54
+					dKing := NewPiece(King, defenderColor, dKingPos)
+
+					attacker := NewPiece(tc.symbol, defenderColor.Opposite(), dKingPos+int(direction)*3)
+					blocker := NewPiece(Pawn, defenderColor.Opposite(), dKingPos+int(direction)*2)
+
+					err := board.LoadPieces([]Piece{dKing, attacker, blocker})
+					assert.NoError(t, err)
+
+					isCheck := board.IsCheck(defenderColor)
+					assert.NoError(t, err)
+					assert.Equal(t, false, isCheck)
+				})
 			}
 		}
 	}

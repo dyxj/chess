@@ -293,6 +293,9 @@ func (b *Board) isUnderAttackBySlider(pos int, direction Direction, attacker Col
 		if slices.Contains(symbols, b.Symbol(attackerPos)) {
 			return true
 		}
+
+		// occupied by non-attacking piece,
+		break
 	}
 	return false
 }
