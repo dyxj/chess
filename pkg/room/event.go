@@ -30,7 +30,8 @@ type EventMessagePayload struct {
 }
 
 type EventErrorPayload struct {
-	Error string `json:"error"`
+	LastValidMoveCount int    `json:"lastValidMoveCount"`
+	Error              string `json:"error"`
 }
 
 type EventResignPayload struct {
@@ -54,11 +55,12 @@ func NewEventRound(round game.RoundResult) Event {
 	}
 }
 
-func NewEventError(err error) Event {
+func NewEventError(lastValidMoveCount int, err error) Event {
 	return Event{
 		EventType: EventTypeError,
 		Payload: EventErrorPayload{
-			Error: err.Error(),
+			LastValidMoveCount: lastValidMoveCount,
+			Error:              err.Error(),
 		},
 	}
 }

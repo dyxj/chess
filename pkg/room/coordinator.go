@@ -233,8 +233,12 @@ func (c *Coordinator) publishEventRound(p websocketPublisher, round game.RoundRe
 	return nil
 }
 
-func (c *Coordinator) publishEventError(p websocketPublisher, eErr error) error {
-	e := NewEventError(eErr)
+func (c *Coordinator) publishEventError(
+	p websocketPublisher,
+	lastValidMoveCount int,
+	eErr error,
+) error {
+	e := NewEventError(lastValidMoveCount, eErr)
 	err := p.PublishJson(e)
 	if err != nil {
 		return err
@@ -418,7 +422,7 @@ func (c *Coordinator) processMoveAction(
 	pub websocketPublisher,
 ) error {
 	if err := payload.Validate(); err != nil {
-		pErr := c.publishEventError(pub, err)
+		pErr := c.publishEventError(pub, room.Game.Round().Count, err)
 		if pErr != nil {
 			return pErr
 		}
@@ -429,7 +433,7 @@ func (c *Coordinator) processMoveAction(
 		payload.ToMove(color),
 	)
 	if err != nil {
-		pErr := c.publishEventError(pub, err)
+		pErr := c.publishEventError(pub, room.Game.Round().Count, err)
 		if pErr != nil {
 			return pErr
 		}
