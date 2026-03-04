@@ -64,3 +64,29 @@ func (p *ActionMovePayload) ToMove(color engine.Color) game.Move {
 		Promotion: p.Promotion,
 	}
 }
+
+type ActionMove struct {
+	Type    ActionType        `json:"type"`
+	Payload ActionMovePayload `json:"payload"`
+}
+
+func NewActionMove(
+	symbol engine.Symbol,
+	from *int,
+	to *int,
+	promotion ...engine.Symbol,
+) ActionMove {
+	p := engine.Symbol(0)
+	if len(promotion) > 0 {
+		p = promotion[0]
+	}
+	return ActionMove{
+		Type: ActionTypeMove,
+		Payload: ActionMovePayload{
+			Symbol:    symbol,
+			From:      from,
+			To:        to,
+			Promotion: p,
+		},
+	}
+}
