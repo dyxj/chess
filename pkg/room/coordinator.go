@@ -179,7 +179,13 @@ func (c *Coordinator) runLoop(
 
 	<-room.readyChan
 
-	err := c.publishEventRound(ws, room.Game.Round())
+	err := c.publishEventRoomReady(ws, room)
+	if err != nil {
+		return err
+	}
+
+	// initial board state
+	err = c.publishEventRound(ws, room.Game.Round())
 	if err != nil {
 		return err
 	}
@@ -233,6 +239,15 @@ func (c *Coordinator) publishEventRound(p websocketPublisher, round game.RoundRe
 	return nil
 }
 
+func (c *Coordinator) publishEventRoomReady(p websocketPublisher, room *Room) error {
+	e := NewEventRoomReady(room.whitePlayer.Name, room.blackPlayer.Name)
+	err := p.PublishJson(e)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Coordinator) publishEventError(
 	p websocketPublisher,
 	lastValidMoveCount int,
@@ -247,7 +262,7 @@ func (c *Coordinator) publishEventError(
 }
 
 func (c *Coordinator) publishEventResign(p websocketPublisher, resigner engine.Color) error {
-	e := NewResignEvent(resigner)
+	e := NewEventResign(resigner)
 	err := p.PublishJson(e)
 	if err != nil {
 		return err

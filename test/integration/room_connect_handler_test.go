@@ -53,7 +53,15 @@ func TestRoomConnectHandler_Disconnect(t *testing.T) {
 	require.NoError(t, err)
 	defer wConn.Close()
 
-	// After white connects, both players receive the initial RoundResult.
+	// After white connects, both players receive room ready and the initial RoundResult.
+	w0, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, w0.EventType)
+
+	b0, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, b0.EventType)
+
 	w1, ok := <-wEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
@@ -118,7 +126,15 @@ func TestRoomConnectHandler_SendActionMove(t *testing.T) {
 	require.NoError(t, err)
 	defer wConn.Close()
 
-	// After white connects, both players receive the initial RoundResult.
+	// After white connects, both players receive room ready and the initial RoundResult.
+	w0, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, w0.EventType)
+
+	b0, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, b0.EventType)
+
 	w1, ok := <-wEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
@@ -275,7 +291,15 @@ func TestRoomConnectHandler_Checkmate(t *testing.T) {
 	require.NoError(t, err)
 	defer wConn.Close()
 
-	// After white connects, both players receive the initial RoundResult.
+	// After white connects, both players receive room ready and the initial RoundResult.
+	w0, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, w0.EventType)
+
+	b0, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, b0.EventType)
+
 	w1, ok := <-wEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
@@ -355,7 +379,15 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 	require.NoError(t, err)
 	defer wConn.Close()
 
-	// After white connects, both players receive the initial RoundResult.
+	// After white connects, both players receive room ready and the initial RoundResult.
+	w0, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, w0.EventType)
+
+	b0, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, b0.EventType)
+
 	w1, ok := <-wEventChan
 	require.True(t, ok)
 	require.Equal(t, room.EventTypeRoundResult, w1.EventType)
@@ -516,7 +548,15 @@ func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 			require.NoError(t, err)
 			defer wConn.Close()
 
-			// After white connects, both players receive the initial RoundResult.
+			// After white connects, both players receive room ready and the initial RoundResult.
+			w0, ok := <-wEventChan
+			require.True(t, ok)
+			require.Equal(t, room.EventTypeRoomReady, w0.EventType)
+
+			b0, ok := <-bEventChan
+			require.True(t, ok)
+			require.Equal(t, room.EventTypeRoomReady, b0.EventType)
+
 			w1, ok := <-wEventChan
 			require.True(t, ok)
 			require.Equal(t, room.EventTypeRoundResult, w1.EventType)

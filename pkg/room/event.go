@@ -14,6 +14,7 @@ const (
 	EventTypeRoundResult EventType = "round"
 	EventTypeError       EventType = "error"
 	EventTypeResign      EventType = "resign"
+	EventTypeRoomReady   EventType = "room_ready"
 )
 
 type EventPartial struct {
@@ -37,6 +38,11 @@ type EventErrorPayload struct {
 type EventResignPayload struct {
 	Resigner engine.Color `json:"resigner"`
 	Winner   engine.Color `json:"winner"`
+}
+
+type EventRoomReadyPayload struct {
+	WhitePlayerName string `json:"whitePlayerName"`
+	BlackPlayerName string `json:"blackPlayerName"`
 }
 
 func NewEventMessage(message string) Event {
@@ -65,12 +71,25 @@ func NewEventError(lastValidMoveCount int, err error) Event {
 	}
 }
 
-func NewResignEvent(resigner engine.Color) Event {
+func NewEventResign(resigner engine.Color) Event {
 	return Event{
 		EventType: EventTypeResign,
 		Payload: EventResignPayload{
 			Resigner: resigner,
 			Winner:   resigner.Opposite(),
+		},
+	}
+}
+
+func NewEventRoomReady(
+	whitePlayerName string,
+	blackPlayerName string,
+) Event {
+	return Event{
+		EventType: EventTypeRoomReady,
+		Payload: EventRoomReadyPayload{
+			WhitePlayerName: whitePlayerName,
+			BlackPlayerName: blackPlayerName,
 		},
 	}
 }
