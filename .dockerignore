@@ -1,0 +1,15 @@
+# Build artifacts
+game-cli
+coverage.out
+coverage.html
+# Dev / tooling
+_dev/
+_taskfiles/
+Taskfile.yml
+Readme.md
+# Test files
+**/*_test.go
+test/
+# Git
+.git/
+.gitignore
