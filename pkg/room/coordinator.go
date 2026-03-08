@@ -78,15 +78,7 @@ func (c *Coordinator) IssueTicketToken(code string, name string, color engine.Co
 		return "", ErrRoomFull
 	}
 
-	err := room.IncrementTicket()
-	if err != nil {
-		return "", err
-	}
-
 	token := c.ticketCache.GenerateTicket(code, name, color, c.tokenDuration)
-	time.AfterFunc(c.tokenDuration, func() {
-		room.DecrementTicket()
-	})
 
 	return token, nil
 }

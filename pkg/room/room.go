@@ -51,33 +51,31 @@ func (s Status) String() string {
 }
 
 type Room struct {
-	mu            sync.RWMutex
-	ID            uuid.UUID
-	Code          string
-	status        Status
-	Game          *game.Game
-	whitePlayer   *Player
-	blackPlayer   *Player
-	whitePub      websocketPublisher
-	blackPub      websocketPublisher
-	CreatedTime   time.Time
-	ticketsIssued int
-	readyChan     chan struct{}
-	readyOnce     sync.Once
-	gameOverChan  chan struct{}
-	gameOverOnce  sync.Once
+	mu           sync.RWMutex
+	ID           uuid.UUID
+	Code         string
+	status       Status
+	Game         *game.Game
+	whitePlayer  *Player
+	blackPlayer  *Player
+	whitePub     websocketPublisher
+	blackPub     websocketPublisher
+	CreatedTime  time.Time
+	readyChan    chan struct{}
+	readyOnce    sync.Once
+	gameOverChan chan struct{}
+	gameOverOnce sync.Once
 }
 
 func NewEmptyRoom() *Room {
 	return &Room{
-		ID:            uuid.New(),
-		Code:          generateCode(),
-		Game:          game.NewGame(engine.NewBoard()),
-		status:        StatusWaiting,
-		CreatedTime:   time.Now(),
-		ticketsIssued: 0,
-		readyChan:     make(chan struct{}),
-		gameOverChan:  make(chan struct{}),
+		ID:           uuid.New(),
+		Code:         generateCode(),
+		Game:         game.NewGame(engine.NewBoard()),
+		status:       StatusWaiting,
+		CreatedTime:  time.Now(),
+		readyChan:    make(chan struct{}),
+		gameOverChan: make(chan struct{}),
 	}
 }
 
@@ -112,24 +110,6 @@ func (r *Room) RemovePlayer(color engine.Color) {
 		r.whitePlayer = nil
 	} else {
 		r.blackPlayer = nil
-	}
-}
-
-func (r *Room) IncrementTicket() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.ticketsIssued >= 2 {
-		return ErrRoomFull
-	}
-	r.ticketsIssued++
-	return nil
-}
-
-func (r *Room) DecrementTicket() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.ticketsIssued > 0 {
-		r.ticketsIssued--
 	}
 }
 
