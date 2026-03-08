@@ -49,17 +49,20 @@ func (h *ConnectHandler) handleError(err error, w http.ResponseWriter) {
 
 	if errors.Is(err, ErrRoomNotFound) {
 		h.logger.Warn("room not found", zap.Error(err))
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	if errors.Is(err, ErrRoomFull) {
 		h.logger.Warn("room full", zap.Error(err))
-		w.WriteHeader(http.StatusConflict)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	if errors.Is(err, ErrColorOccupied) {
 		h.logger.Warn("color occupied", zap.Error(err))
 		w.WriteHeader(http.StatusConflict)
+		return
 	}
 
 	h.logger.Error("failed to connect to room", zap.Error(err))
