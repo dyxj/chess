@@ -1,5 +1,7 @@
 # Chess
 
+Deployed at: https://chess.darrenyxj.com/
+
 <!-- TOC -->
 * [Chess](#chess)
   * [Dev tools](#dev-tools)
