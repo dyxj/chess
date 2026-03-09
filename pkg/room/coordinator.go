@@ -88,32 +88,49 @@ func (c *Coordinator) ConnectWithToken(
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
-	ticket, valid := c.ticketCache.ConsumeTicket(token)
-	if !valid {
-		return ErrInvalidToken
-	}
-
-	room, exist := c.cache.Find(ticket.RoomCode)
-	if !exist {
-		return ErrRoomNotFound
-	}
-
-	if room.Status() != StatusWaiting {
-		return ErrRoomFull
-	}
-
-	p := NewPlayer(ticket.Name)
-	err := room.SetPlayer(ticket.Color, p)
-	if err != nil {
-		return err
-	}
+	p := NewPlayer("")
 
 	conn, err := c.wsm.Open(p.ID.String(), w, r)
 	if err != nil {
-		room.RemovePlayer(ticket.Color)
 		return err
 	}
 	defer c.wsm.Delete(conn.Key())
+	defer func() {
+		c.logger.Debug("closing websocket connection")
+		conn.Cancel()
+		if err := conn.WriteCloseStatusCode(ws.StatusNormalClosure, "game over"); err != nil {
+			c.logger.Info("failed to write close status", zap.Error(err))
+		}
+		if err := conn.Close(); err != nil {
+			c.logger.Info("failed to close websocket connection", zap.Error(err))
+		}
+		c.logger.Debug("closed websocket connection")
+	}()
+
+	ticket, valid := c.ticketCache.ConsumeTicket(token)
+	if !valid {
+		c.publishTerminalError(conn, ErrInvalidToken)
+		return nil
+	}
+
+	p.Name = ticket.Name
+
+	room, exist := c.cache.Find(ticket.RoomCode)
+	if !exist {
+		c.publishTerminalError(conn, ErrRoomNotFound)
+		return nil
+	}
+
+	if room.Status() != StatusWaiting {
+		c.publishTerminalError(conn, ErrRoomFull)
+		return nil
+	}
+
+	if err := room.SetPlayer(ticket.Color, p); err != nil {
+		c.publishTerminalError(conn, err)
+		return nil
+	}
+	defer room.RemovePlayer(ticket.Color)
 
 	hasBoth := room.setPublisher(ticket.Color, conn)
 	defer room.removePublisher(ticket.Color)
@@ -124,20 +141,6 @@ func (c *Coordinator) ConnectWithToken(
 		zap.String("color", ticket.Color.String()),
 	)
 	logger.Info("connected to room")
-
-	defer func() {
-		logger.Debug("closing websocket connection")
-		conn.Cancel()
-		err := conn.WriteCloseStatusCode(ws.StatusNormalClosure, "game over")
-		if err != nil {
-			logger.Info("failed to write close status", zap.Error(err))
-		}
-		err = conn.Close()
-		if err != nil {
-			logger.Info("failed to close websocket connection", zap.Error(err))
-		}
-		logger.Debug("closed websocket connection")
-	}()
 
 	if !hasBoth {
 		err := c.publishEventMessage(conn, fmt.Sprintf("Waiting for %v player",
@@ -251,6 +254,18 @@ func (c *Coordinator) publishEventError(
 		return err
 	}
 	return nil
+}
+
+func (c *Coordinator) publishTerminalError(p websocketPublisher, err error) {
+	code := terminalErrCode(err)
+	if pErr := c.publishEventTerminalError(p, code, err); pErr != nil {
+		c.logger.Warn("failed to publish terminal error event", zap.Error(pErr))
+	}
+}
+
+func (c *Coordinator) publishEventTerminalError(p websocketPublisher, code string, eErr error) error {
+	e := NewEventTerminalError(code, eErr)
+	return p.PublishJson(e)
 }
 
 func (c *Coordinator) publishEventResign(p websocketPublisher, resigner engine.Color) error {

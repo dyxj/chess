@@ -33,6 +33,8 @@ type EventMessagePayload struct {
 type EventErrorPayload struct {
 	LastValidMoveCount int    `json:"lastValidMoveCount"`
 	Error              string `json:"error"`
+	Code               string `json:"code,omitempty"`
+	Terminal           bool   `json:"terminal,omitempty"`
 }
 
 type EventResignPayload struct {
@@ -67,6 +69,17 @@ func NewEventError(lastValidMoveCount int, err error) Event {
 		Payload: EventErrorPayload{
 			LastValidMoveCount: lastValidMoveCount,
 			Error:              err.Error(),
+		},
+	}
+}
+
+func NewEventTerminalError(code string, err error) Event {
+	return Event{
+		EventType: EventTypeError,
+		Payload: EventErrorPayload{
+			Error:    err.Error(),
+			Code:     code,
+			Terminal: true,
 		},
 	}
 }

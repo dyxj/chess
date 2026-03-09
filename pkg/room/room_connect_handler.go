@@ -1,7 +1,6 @@
 package room
 
 import (
-	"errors"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -39,32 +38,7 @@ func (h *ConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// websocket only returns status code pre-connection
 func (h *ConnectHandler) handleError(err error, w http.ResponseWriter) {
-	if errors.Is(err, ErrInvalidToken) {
-		h.logger.Warn("invalid token", zap.Error(err))
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if errors.Is(err, ErrRoomNotFound) {
-		h.logger.Warn("room not found", zap.Error(err))
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	if errors.Is(err, ErrRoomFull) {
-		h.logger.Warn("room full", zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if errors.Is(err, ErrColorOccupied) {
-		h.logger.Warn("color occupied", zap.Error(err))
-		w.WriteHeader(http.StatusConflict)
-		return
-	}
-
-	h.logger.Error("failed to connect to room", zap.Error(err))
+	h.logger.Error("failed to upgrade websocket connection", zap.Error(err))
 	w.WriteHeader(http.StatusInternalServerError)
 }
