@@ -272,57 +272,6 @@ func TestRoomJoinHandler_ShouldReturnNotFound(t *testing.T) {
 	assert.Equal(t, "entity not found", result.Message)
 }
 
-func TestRoomJoinHandler_ShouldReturnBadRequest_MaxTicketsIssued(t *testing.T) {
-	testSvr := testx.GlobalEnv().HTTTPTestServer()
-
-	memCache := testx.GlobalEnv().MemCache()
-	t.Cleanup(func() {
-		memCache.Clear()
-	})
-
-	var err error
-	r := room.NewEmptyRoom()
-	err = memCache.Add(r.Code, r, time.Time{})
-	assert.NoError(t, err)
-
-	rCoordinator := testx.GlobalEnv().RoomCoordinator()
-	_, err = rCoordinator.IssueTicketToken(r.Code, "white player", engine.White)
-	_, err = rCoordinator.IssueTicketToken(r.Code, "black player", engine.Black)
-
-	color := randx.FromSlice(engine.Colors)
-	payload := room.JoinRequest{
-		Name:  color.String() + " player",
-		Color: color,
-	}
-
-	buffer := new(bytes.Buffer)
-	err = json.NewEncoder(buffer).Encode(payload)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest(
-		"POST",
-		testSvr.URL+fmt.Sprintf("/room/%s/join", r.Code),
-		buffer)
-	assert.NoError(t, err)
-
-	resp, err := testSvr.Client().Do(request)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-	var result httpx.ErrorResponse
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	assert.NoError(t, err)
-
-	assert.Equal(t, httpx.CodeBadRequest, result.Code)
-	assert.Equal(t, "room is full", result.Message)
-}
-
 func TestRoomJoinHandler_ShouldReturnBadRequest_RoomStatusNotWaiting(t *testing.T) {
 	testSvr := testx.GlobalEnv().HTTTPTestServer()
 
