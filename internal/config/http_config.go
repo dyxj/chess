@@ -12,6 +12,7 @@ type HTTPServerConfig struct {
 	ShutDownTimeoutEV     time.Duration `env:"SHUT_DOWN_TIMEOUT"`
 	ShutDownHardTimeoutEV time.Duration `env:"SHUT_DOWN_HARD_TIMEOUT"`
 	ShutDownReadyDelayEV  time.Duration `env:"SHUT_DOWN_READY_DELAY"`
+	CORSEnabledEV         bool          `env:"CORS_ENABLED" envDefault:"false"`
 }
 
 func (c *HTTPServerConfig) Host() string {
@@ -48,4 +49,8 @@ func (c *HTTPServerConfig) ShutDownHardTimeout() time.Duration {
 
 func (c *HTTPServerConfig) ShutDownReadyDelay() time.Duration {
 	return c.ShutDownReadyDelayEV
+}
+
+func (c *HTTPServerConfig) CORSEnabled() bool {
+	return c.CORSEnabledEV
 }

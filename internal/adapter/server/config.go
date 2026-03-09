@@ -13,4 +13,6 @@ type HttpConfig interface {
 	ShutDownTimeout() time.Duration
 	ShutDownHardTimeout() time.Duration
 	ShutDownReadyDelay() time.Duration
+
+	CORSEnabled() bool
 }

@@ -39,7 +39,7 @@ func main() {
 		logger, 30*time.Second,
 		room.NewMemCache(memCache),
 	)
-	router := server.BuildRouter(logger, coordinator)
+	router := server.BuildRouter(logger, coordinator, cfg.HTTPServerConfig.CORSEnabled())
 	errSig := httpServer.Run(router)
 
 	select {
