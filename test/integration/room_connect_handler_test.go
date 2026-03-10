@@ -431,6 +431,263 @@ func TestRoomConnectHandler_Stalemate(t *testing.T) {
 	assert.Equal(t, game.StateStalemate, rrB.State)
 }
 
+func TestRoomConnectHandler_TerminalError_InvalidToken(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+
+	eventChan, conn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), "invalid-token"),
+		logger,
+	)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	event, ok := <-eventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeError, event.EventType)
+
+	var payload room.EventErrorPayload
+	err = json.Unmarshal(event.Payload, &payload)
+	require.NoError(t, err)
+	require.True(t, payload.Terminal)
+	require.Equal(t, room.ErrCodeInvalidToken, payload.Code)
+	require.Equal(t, room.ErrInvalidToken.Error(), payload.Error)
+
+	// Connection should close after terminal error
+	_, ok = <-eventChan
+	require.False(t, ok)
+}
+
+func TestRoomConnectHandler_TerminalError_ColorOccupied(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	r, err := c.CreateRoom()
+	require.NoError(t, err)
+
+	// Issue two tokens for the same color while room is still waiting
+	w1Token, err := c.IssueTicketToken(r.Code, "white player 1", engine.White)
+	require.NoError(t, err)
+	w2Token, err := c.IssueTicketToken(r.Code, "white player 2", engine.White)
+	require.NoError(t, err)
+	logger.Printf("code: %s, w1Token: %s, w2Token: %s\n", r.Code, w1Token, w2Token)
+
+	// Connect w1: occupies the white color slot, room still waiting for black
+	w1EventChan, w1Conn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), w1Token),
+		logger,
+	)
+	require.NoError(t, err)
+	defer w1Conn.Close()
+
+	w1Msg, ok := <-w1EventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, w1Msg.EventType)
+
+	// Connect w2: white slot already taken, room still StatusWaiting
+	w2EventChan, w2Conn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), w2Token),
+		logger,
+	)
+	require.NoError(t, err)
+	defer w2Conn.Close()
+
+	w2Event, ok := <-w2EventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeError, w2Event.EventType)
+
+	var payload room.EventErrorPayload
+	err = json.Unmarshal(w2Event.Payload, &payload)
+	require.NoError(t, err)
+	require.True(t, payload.Terminal)
+	require.Equal(t, room.ErrCodeColorOccupied, payload.Code)
+	require.Equal(t, room.ErrColorOccupied.Error(), payload.Error)
+
+	// Connection should close after terminal error
+	_, ok = <-w2EventChan
+	require.False(t, ok)
+}
+
+func TestRoomConnectHandler_TerminalError_RoomFull(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	// Issue all tokens before anyone connects (room still StatusWaiting)
+	code, wToken, bToken, err := createRoomAndTokens(c)
+	require.NoError(t, err)
+	w2Token, err := c.IssueTicketToken(code, "white player 2", engine.White)
+	require.NoError(t, err)
+	logger.Printf("code: %s\n", code)
+
+	// Connect black first: receives waiting message
+	bEventChan, bConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer bConn.Close()
+
+	bWait, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, bWait.EventType)
+
+	// Connect white: room transitions to StatusInProgress
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer wConn.Close()
+
+	// Wait for both players to receive RoomReady (confirms room is StatusInProgress)
+	wReady, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, wReady.EventType)
+
+	bReady, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeRoomReady, bReady.EventType)
+
+	// Room is now StatusInProgress: w2 should get room_full terminal error
+	w2EventChan, w2Conn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), w2Token),
+		logger,
+	)
+	require.NoError(t, err)
+	defer w2Conn.Close()
+
+	w2Event, ok := <-w2EventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeError, w2Event.EventType)
+
+	var payload room.EventErrorPayload
+	err = json.Unmarshal(w2Event.Payload, &payload)
+	require.NoError(t, err)
+	require.True(t, payload.Terminal)
+	require.Equal(t, room.ErrCodeRoomFull, payload.Code)
+	require.Equal(t, room.ErrRoomFull.Error(), payload.Error)
+
+	// Connection should close after terminal error
+	_, ok = <-w2EventChan
+	require.False(t, ok)
+}
+
+func TestRoomConnectHandler_GameError_WrongColor(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	code, wToken, bToken, err := createRoomAndTokens(c)
+	require.NoError(t, err)
+	logger.Printf("code: %s\n", code)
+
+	bEventChan, bConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer bConn.Close()
+
+	bWait, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, bWait.EventType)
+
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer wConn.Close()
+
+	// Drain room ready and initial round result events
+	_, ok = <-wEventChan
+	require.True(t, ok)
+	_, ok = <-bEventChan
+	require.True(t, ok)
+	_, ok = <-wEventChan
+	require.True(t, ok)
+	_, ok = <-bEventChan
+	require.True(t, ok)
+
+	// Black tries to move on white's turn
+	err = writeActionMove(bConn, engine.Pawn, new(48), new(40))
+	require.NoError(t, err)
+
+	bErr, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeError, bErr.EventType)
+
+	var errPayload room.EventErrorPayload
+	err = json.Unmarshal(bErr.Payload, &errPayload)
+	require.NoError(t, err)
+	require.False(t, errPayload.Terminal)
+	require.Equal(t, engine.ErrNotActiveColor.Error(), errPayload.Error)
+}
+
+func TestRoomConnectHandler_GameError_IllegalMove(t *testing.T) {
+	go testx.SetTimeout(t.Context(), 10*time.Second)
+
+	logger := testx.GlobalEnv().Logger()
+	testSvr := testx.GlobalEnv().HTTTPTestServer()
+	c := testx.GlobalEnv().RoomCoordinator()
+
+	code, wToken, bToken, err := createRoomAndTokens(c)
+	require.NoError(t, err)
+	logger.Printf("code: %s\n", code)
+
+	bEventChan, bConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), bToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer bConn.Close()
+
+	bWait, ok := <-bEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeMessage, bWait.EventType)
+
+	wEventChan, wConn, err := websocketDialAndListen(
+		fmt.Sprintf(connectURLFormat, testSvr.Listener.Addr().String(), wToken),
+		logger,
+	)
+	require.NoError(t, err)
+	defer wConn.Close()
+
+	// Drain room ready and initial round result events
+	_, ok = <-wEventChan
+	require.True(t, ok)
+	_, ok = <-bEventChan
+	require.True(t, ok)
+	_, ok = <-wEventChan
+	require.True(t, ok)
+	_, ok = <-bEventChan
+	require.True(t, ok)
+
+	// White tries an illegal move (pawn backward from a2 to a1)
+	err = writeActionMove(wConn, engine.Pawn, new(8), new(0))
+	require.NoError(t, err)
+
+	wErr, ok := <-wEventChan
+	require.True(t, ok)
+	require.Equal(t, room.EventTypeError, wErr.EventType)
+
+	var errPayload room.EventErrorPayload
+	err = json.Unmarshal(wErr.Payload, &errPayload)
+	require.NoError(t, err)
+	require.False(t, errPayload.Terminal)
+	require.Equal(t, game.ErrIllegalMove.Error(), errPayload.Error)
+}
+
 func TestRoomConnectHandler_ActionPayload_ValidationErrors(t *testing.T) {
 	//go testx.SetTimeout(t.Context(), 10*time.Second)
 	tt := []struct {
