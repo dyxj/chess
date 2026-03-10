@@ -105,6 +105,7 @@ func (e *Environment) buildHttpTestServer(roomCoordinator *room.Coordinator) (*h
 	router := server.BuildRouter(
 		logger,
 		roomCoordinator,
+		false,
 	)
 
 	return httptest.NewServer(router), nil
